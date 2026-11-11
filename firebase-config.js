@@ -9,7 +9,8 @@ import {
   set,
   get,
   update,
-  onValue
+  onValue,
+  runTransaction
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
 // Firebase Configuration
@@ -47,5 +48,6 @@ export {
   set,
   get,
   update,
-  onValue
+  onValue,
+  runTransaction
 };
