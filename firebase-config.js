@@ -1,9 +1,18 @@
-// เพิ่มการ import initializeApp และ getAnalytics จาก CDN ให้ครบถ้วน
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
-import { getDatabase, ref, set, get, update, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-// Your web app's Firebase configuration
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+
+import { getAnalytics, isSupported } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
+
+import {
+  getDatabase,
+  ref,
+  set,
+  get,
+  update,
+  onValue
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+// Firebase Configuration
 const firebaseConfig = {
   apiKey: "AIzaSyBa3S7wZzq9qGBaXRxVrQqWBW4GfsV_jA0",
   authDomain: "hm-mod.firebaseapp.com",
@@ -17,6 +26,26 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+
+// Initialize Analytics safely
+let analytics = null;
+
+isSupported().then((supported) => {
+  if (supported) {
+    analytics = getAnalytics(app);
+  }
+});
+
+// Initialize Realtime Database
 export const db = getDatabase(app);
-export { ref, set, get, update, onValue };
+
+// Export Firebase functions
+export {
+  app,
+  analytics,
+  ref,
+  set,
+  get,
+  update,
+  onValue
+};
