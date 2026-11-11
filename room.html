@@ -96,6 +96,9 @@
             Witness: "👁️ พยาน (Higher/Lower Sensor)",
             Innocent: "👤 ชาวบ้าน (Innocent)"
         };
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomCodeFromURL = urlParams.get('room');
 
         // ดึงข้อมูลผู้เล่นจาก localStorage (ใช้คีย์ใหม่ hotel_murder_session)
         let playerData;
@@ -104,14 +107,25 @@
         } catch (error) {
             playerData = null;
         }
-
-        if (!playerData || !playerData.roomCode || !playerData.playerId) {
+    
+        if (!playerData || !playerData.playerId) {
             alert("ไม่พบข้อมูลผู้เล่น!");
             window.location.href = "index.html";
             throw new Error("Player data not found");
         }
+    
+        // 3. จัดการดึงค่า (ถ้าใน localStorage ไม่มี roomCode แต่ใน URL มี ให้ใช้จาก URL แทน)
+        const roomCode = playerData.roomCode || roomCodeFromURL;
+        const playerId = playerData.playerId;
+        const playerName = playerData.playerName; // แก้จาก name เป็น playerName ตามที่คุยกันก่อนหน้านี้
+    
+        if (!roomCode) {
+            alert("ไม่พบรหัสห้อง!");
+            window.location.href = "index.html";
+            throw new Error("Room code not found");
+        }
 
-        const { roomCode, playerId, name } = playerData;
+        const { roomCode, playerId, playerName } = playerData;
         const roomRef = ref(db, `rooms/${roomCode}`);
 
         // Elements
@@ -126,7 +140,7 @@
         const startGameBtn = document.getElementById("startGameBtn");
 
         displayRoomCode.textContent = roomCode;
-        myName.textContent = name;
+        myName.textContent = playerName;
 
         // ฟังข้อมูล Realtime จาก Firebase
         onValue(roomRef, (snapshot) => {
