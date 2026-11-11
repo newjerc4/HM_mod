@@ -7,7 +7,7 @@ import { getDatabase, ref, set, get, update, onValue } from "https://www.gstatic
 const firebaseConfig = {
   apiKey: "AIzaSyBa3S7wZzq9qGBaXRxVrQqWBW4GfsV_jA0",
   authDomain: "hm-mod.firebaseapp.com",
-  databaseURL: "https://hm-mod-default-rtdb.asia-southeast1.firebasedatabase.app", // <--- เปลี่ยนมาใช้ตัวนี้แทนตัวเก่า
+  databaseURL: "https://hm-mod-default-rtdb.asia-southeast1.firebasedatabase.app", // <--- เอาให้เหลือแค่นี้ (ลบวงเล็บและตัวด้านหลังทิ้ง)
   projectId: "hm-mod",
   storageBucket: "hm-mod.firebasestorage.app",
   messagingSenderId: "143278157206",
