@@ -1,90 +1,82 @@
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Werewolf Game Room</title>
-
+    <title>Hotel Murder - ห้องเกม</title>
     <script src="https://cdn.tailwindcss.com"></script>
-
     <style>
-        body {
-            font-family: sans-serif;
-        }
+        body { font-family: sans-serif; }
     </style>
 </head>
 
-<body class="bg-gray-900 text-white min-h-screen p-5">
+<body class="bg-slate-950 text-slate-100 min-h-screen p-5">
 
-    <div class="max-w-lg mx-auto">
+    <div class="max-w-md mx-auto space-y-4">
 
-        <h2 class="text-2xl font-bold text-center mb-3">
-            🐺 ห้องเล่นเกมมนุษย์หมาป่า
-        </h2>
+        <!-- หัวข้อห้อง -->
+        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl text-center shadow-xl">
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-widest">รหัสห้อง</p>
+            <h1 id="displayRoomCode" class="text-3xl font-extrabold text-amber-400 tracking-wider my-1">---</h1>
 
-        <div class="bg-gray-800 p-4 rounded-lg mb-4 text-center">
-            <p>รหัสห้อง</p>
-            <h1 id="displayRoomCode"
-                class="text-3xl font-bold text-yellow-400">---</h1>
-
-            <p class="mt-3">สถานะเกม</p>
-            <b id="gameStatus" class="text-green-400">
-                กำลังรอผู้เล่น...
-            </b>
+            <div class="mt-4 pt-3 border-t border-slate-800 flex justify-between items-center text-sm">
+                <span class="text-slate-400">สถานะเกม:</span>
+                <span id="gameStatus" class="font-bold text-amber-500 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
+                    กำลังรอผู้เล่น...
+                </span>
+            </div>
         </div>
 
         <!-- ข้อมูลของฉัน -->
-        <div class="bg-gray-800 p-4 rounded-lg mb-4">
-            <h3 class="text-xl font-bold mb-3">👤 ข้อมูลของคุณ</h3>
-
-            <p>ชื่อ: <b id="myName">-</b></p>
-            <p>บทบาท: <b id="myRole" class="text-yellow-400">
-                รอเริ่มเกม
-            </b></p>
-            <p>สถานะ: <b id="myStatus">มีชีวิต 🟢</b></p>
+        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-2 shadow-xl">
+            <h3 class="text-base font-bold text-slate-200 flex items-center gap-2">
+                <span>👤</span> ข้อมูลของคุณ
+            </h3>
+            <div class="text-sm space-y-1 text-slate-300">
+                <p>ชื่อ: <b id="myName" class="text-white">-</b></p>
+                <p>บทบาท: <b id="myRole" class="text-amber-400">รอเริ่มเกม</b></p>
+                <p>สถานะ: <b id="myStatus" class="text-emerald-400">มีชีวิต 🟢</b></p>
+            </div>
         </div>
 
-        <!-- Host -->
-        <div id="hostControls"
-             class="hidden bg-gray-800 p-4 rounded-lg mb-4">
-
-            <h3 class="text-xl font-bold mb-3">
-                👑 เมนู Host
+        <!-- Host Controls -->
+        <div id="hostControls" class="hidden bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-3 shadow-xl">
+            <h3 class="text-base font-bold text-amber-400 flex items-center gap-2">
+                <span>👑</span> เมนู Host (ผู้สร้างห้อง)
             </h3>
-
             <button id="startGameBtn"
-                class="w-full bg-red-600 hover:bg-red-700 p-3 rounded-lg font-bold">
-                🐺 เริ่มเกม
+                class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3 rounded-xl transition shadow-lg shadow-amber-500/10">
+                เริ่มเกม (แจกบทบาท)
             </button>
-
-            <p class="text-gray-400 text-sm mt-2 text-center">
-                ต้องมีผู้เล่นอย่างน้อย 3 คน
+            <p class="text-slate-400 text-xs text-center">
+                ต้องมีผู้เล่นครบตามจำนวนที่กำหนดจึงจะเริ่มได้
             </p>
         </div>
 
         <!-- Player List -->
-        <div class="bg-gray-800 p-4 rounded-lg mb-4">
-            <h3 class="text-xl font-bold mb-3">
-                👥 ผู้เล่นในห้อง
-            </h3>
-
-            <div id="playerCount" class="text-gray-400 mb-2">
-                ผู้เล่น 0 คน
+        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-3 shadow-xl">
+            <div class="flex justify-between items-center">
+                <h3 class="text-base font-bold text-slate-200 flex items-center gap-2">
+                    <span>👥</span> ผู้เล่นในห้อง
+                </h3>
+                <span id="playerCount" class="text-xs font-semibold bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full border border-slate-700">
+                    ผู้เล่น 0 คน
+                </span>
             </div>
 
-            <div id="playerList"></div>
+            <div id="playerList" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                <!-- รายชื่อผู้เล่นจะถูกเติมที่นี่ -->
+            </div>
         </div>
 
         <button id="leaveRoomBtn"
-            class="w-full bg-gray-600 hover:bg-gray-700 p-3 rounded-lg">
+            class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold py-3 rounded-xl border border-slate-700 transition">
             ออกจากห้อง
         </button>
 
     </div>
 
     <script type="module">
-
         import {
             db,
             ref,
@@ -93,317 +85,202 @@
             runTransaction
         } from "./firebase-config.js";
 
-        // =========================
-        // PLAYER DATA
-        // =========================
+        // แปลงชื่อบทบาทเป็นภาษาไทย
+        const ROLE_NAMES_TH = {
+            Killer: "🗡️ คนร้าย (Killer)",
+            Accomplice: "🤝 ผู้ช่วยคนร้าย (Accomplice)",
+            Locksmith: "🔑 ช่างทำกุญแจ (Locksmith)",
+            Housekeeper: "🧹 แม่บ้าน (Floor Scanner)",
+            GlassCleaner: "🪟 ช่างเช็ดกระจก (Column Scanner)",
+            Detective: "🔍 นักสืบ (Player Tracker)",
+            Witness: "👁️ พยาน (Higher/Lower Sensor)",
+            Innocent: "👤 ชาวบ้าน (Innocent)"
+        };
 
+        // ดึงข้อมูลผู้เล่นจาก localStorage (ใช้คีย์ใหม่ hotel_murder_session)
         let playerData;
-
         try {
-            playerData = JSON.parse(
-                localStorage.getItem("werewolf_player")
-            );
+            playerData = JSON.parse(localStorage.getItem("hotel_murder_session"));
         } catch (error) {
             playerData = null;
         }
 
-        if (!playerData ||
-            !playerData.roomCode ||
-            !playerData.playerId) {
-
+        if (!playerData || !playerData.roomCode || !playerData.playerId) {
             alert("ไม่พบข้อมูลผู้เล่น!");
-
             window.location.href = "index.html";
-
             throw new Error("Player data not found");
         }
 
         const { roomCode, playerId, name } = playerData;
-
         const roomRef = ref(db, `rooms/${roomCode}`);
 
-        // =========================
-        // ELEMENTS
-        // =========================
-
-        const displayRoomCode =
-            document.getElementById("displayRoomCode");
-
-        const gameStatus =
-            document.getElementById("gameStatus");
-
-        const myName =
-            document.getElementById("myName");
-
-        const myRole =
-            document.getElementById("myRole");
-
-        const myStatus =
-            document.getElementById("myStatus");
-
-        const hostControls =
-            document.getElementById("hostControls");
-
-        const playerList =
-            document.getElementById("playerList");
-
-        const playerCount =
-            document.getElementById("playerCount");
-
-        const startGameBtn =
-            document.getElementById("startGameBtn");
+        // Elements
+        const displayRoomCode = document.getElementById("displayRoomCode");
+        const gameStatus = document.getElementById("gameStatus");
+        const myName = document.getElementById("myName");
+        const myRole = document.getElementById("myRole");
+        const myStatus = document.getElementById("myStatus");
+        const hostControls = document.getElementById("hostControls");
+        const playerList = document.getElementById("playerList");
+        const playerCount = document.getElementById("playerCount");
+        const startGameBtn = document.getElementById("startGameBtn");
 
         displayRoomCode.textContent = roomCode;
         myName.textContent = name;
 
-        // =========================
-        // REALTIME DATABASE
-        // =========================
-
+        // ฟังข้อมูล Realtime จาก Firebase
         onValue(roomRef, (snapshot) => {
-
             if (!snapshot.exists()) {
-
                 alert("ห้องนี้ถูกลบแล้ว!");
-
-                localStorage.removeItem("werewolf_player");
-
+                localStorage.removeItem("hotel_murder_session");
                 window.location.href = "index.html";
-
                 return;
             }
 
             const data = snapshot.val();
-
             const players = data.players || {};
             const playerIds = Object.keys(players);
 
-            // ตรวจสอบสมาชิก
             const me = players[playerId];
-
             if (!me) {
-
                 alert("คุณไม่ได้อยู่ในห้องนี้แล้ว!");
-
-                localStorage.removeItem("werewolf_player");
-
+                localStorage.removeItem("hotel_murder_session");
                 window.location.href = "index.html";
-
                 return;
             }
 
-            // สถานะเกม
-            gameStatus.textContent = data.status;
+            // แสดงสถานะเกม
+            gameStatus.textContent = data.status === "WAITING" ? "กำลังรอผู้เล่น..." : "🌙 เฟสกลางคืน (Night Phase)";
 
-            // Host Controls
-            if (data.host === playerId &&
-                data.status === "WAITING") {
-
+            // ตรวจสอบสิทธิ์ Host (เช็คจาก isHost ของ player คนนั้นๆ)
+            if (me.isHost && data.status === "WAITING") {
                 hostControls.classList.remove("hidden");
-
             } else {
-
                 hostControls.classList.add("hidden");
             }
 
-            // ข้อมูลตัวเอง
-            myRole.textContent =
-                data.status === "WAITING"
-                    ? "รอเริ่มเกม"
-                    : me.role || "ยังไม่มีบทบาท";
+            // แสดงบทบาทของตัวเอง
+            if (data.status === "WAITING") {
+                myRole.textContent = "รอเริ่มเกม";
+            } else {
+                const roleKey = me.role;
+                myRole.textContent = ROLE_NAMES_TH[roleKey] || roleKey || "ยังไม่มีบทบาท";
+            }
 
-            myStatus.textContent =
-                me.isAlive
-                    ? "มีชีวิต 🟢"
-                    : "เสียชีวิต 🔴";
+            myStatus.textContent = me.isAlive ? "มีชีวิต 🟢" : "เสียชีวิต 🔴";
 
-            // รายชื่อผู้เล่น
-            playerCount.textContent =
-                `ผู้เล่น ${playerIds.length} คน`;
-
+            // อัปเดตรายชื่อผู้เล่นในห้อง
+            playerCount.textContent = `ผู้เล่น ${playerIds.length} / ${data.maxPlayers || '-'} คน`;
             playerList.innerHTML = "";
 
             playerIds.forEach((id) => {
-
                 const player = players[id];
-
                 const item = document.createElement("div");
-
-                item.className =
-                    "bg-gray-700 p-3 rounded-lg mb-2 flex justify-between items-center";
+                item.className = "bg-slate-950/60 p-3 rounded-xl flex justify-between items-center border border-slate-800/80";
 
                 const playerInfo = document.createElement("span");
-
-                playerInfo.textContent =
-                    player.name +
-                    (id === data.host ? " 👑 (Host)" : "");
+                playerInfo.className = "text-sm text-slate-200";
+                playerInfo.textContent = player.name + (player.isHost ? " 👑 (Host)" : "");
 
                 const status = document.createElement("span");
-
-                status.textContent =
-                    player.isAlive ? "🟢" : "🔴";
+                status.textContent = player.isAlive ? "🟢" : "🔴";
 
                 item.appendChild(playerInfo);
                 item.appendChild(status);
-
                 playerList.appendChild(item);
-
             });
 
         }, (error) => {
-
             console.error("Firebase Error:", error);
-
             alert("ไม่สามารถโหลดข้อมูลห้องได้: " + error.message);
-
         });
 
-        // =========================
-        // SHUFFLE ROLES
-        // =========================
-
+        // ฟังก์ชันสลับตำแหน่งอาเรย์ (Fisher-Yates Shuffle)
         function shuffle(array) {
-
             const result = [...array];
-
             for (let i = result.length - 1; i > 0; i--) {
-
                 const j = Math.floor(Math.random() * (i + 1));
-
-                [result[i], result[j]] =
-                    [result[j], result[i]];
+                [result[i], result[j]] = [result[j], result[i]];
             }
-
             return result;
         }
 
-        // =========================
-        // START GAME
-        // =========================
-
+        // กดปุ่มเริ่มเกม (แจกบทบาทตาม Preset ของห้อง)
         startGameBtn.onclick = async () => {
-
-            if (!confirm("คุณต้องการเริ่มเกมหรือไม่?")) {
+            if (!confirm("คุณต้องการเริ่มเกมและแจกบทบาททั้งหมดหรือไม่?")) {
                 return;
             }
 
             startGameBtn.disabled = true;
-
             startGameBtn.textContent = "กำลังเริ่มเกม...";
 
             try {
-
                 const result = await runTransaction(
                     roomRef,
                     (data) => {
-
                         if (!data) return;
 
-                        // ตรวจสอบ Host
-                        if (data.host !== playerId) {
-                            return;
-                        }
-
-                        // ตรวจสอบสถานะ
-                        if (data.status !== "WAITING") {
-                            return;
-                        }
-
                         const players = data.players || {};
-
                         const playerIds = Object.keys(players);
+                        const me = players[playerId];
 
-                        // ต้องมีอย่างน้อย 3 คน
-                        if (playerIds.length < 3) {
-                            return;
+                        // ตรวจสอบสิทธิ์ Host
+                        if (!me || !me.isHost) return;
+                        if (data.status !== "WAITING") return;
+
+                        const maxPlayers = data.maxPlayers || 6;
+                        
+                        // ตรวจสอบว่าผู้เล่นครบตามจำนวนที่กำหนดไหม (หรืออย่างน้อยตามจำนวน Preset)
+                        if (playerIds.length < maxPlayers) {
+                            return; // ถ้ายังไม่ครบ ไม่ให้เริ่ม
                         }
 
-                        // สุ่มผู้เล่น
-                        const shuffled = shuffle(playerIds);
+                        // ดึงรายการบทบาทที่เตรียมไว้ตามจำนวนคน
+                        const rolesToUse = data.config && data.config.rolesToUse 
+                            ? [...data.config.rolesToUse] 
+                            : ["Killer", "Accomplice", "Locksmith", "Housekeeper", "GlassCleaner", "Innocent"];
 
-                        // สุ่มบทบาท
-                        shuffled.forEach((id, index) => {
+                        // สลับตำแหน่งผู้เล่นและสลับบทบาท
+                        const shuffledPlayerIds = shuffle(playerIds);
+                        const shuffledRoles = shuffle(rolesToUse);
 
-                            players[id].role =
-                                index === 0
-                                    ? "Werewolf"
-                                    : "Villager";
-
-                            players[id].isAlive = true;
-
+                        // แจกบทบาทให้ผู้เล่นทีละคน
+                        shuffledPlayerIds.forEach((id, index) => {
+                            if (players[id]) {
+                                players[id].role = shuffledRoles[index] || "Innocent";
+                                players[id].isAlive = true;
+                            }
                         });
 
-                        // เปลี่ยนสถานะเกม
                         data.players = players;
-                        data.status = "NIGHT";
+                        data.status = "NIGHT"; // เปลี่ยนสถานะเข้าสู่คืนแรก
 
                         return data;
-
                     },
-                    {
-                        applyLocally: false
-                    }
+                    { applyLocally: false }
                 );
 
-                if (result.committed) {
-
-                    alert("เริ่มเกมแล้ว! 🌙");
-
-                } else {
-
-                    const snapshot = await get(roomRef);
-
-                    const data = snapshot.val();
-
-                    if (!data) {
-                        alert("ไม่พบห้อง");
-                    } else if (data.host !== playerId) {
-                        alert("เฉพาะ Host เท่านั้นที่เริ่มเกมได้");
-                    } else if (data.status !== "WAITING") {
-                        alert("เกมเริ่มไปแล้ว");
-                    } else if (
-                        Object.keys(data.players || {}).length < 3
-                    ) {
-                        alert("ต้องมีผู้เล่นอย่างน้อย 3 คน");
-                    } else {
-                        alert("ไม่สามารถเริ่มเกมได้");
-                    }
-
+                if (!result.committed) {
+                    alert("ไม่สามารถเริ่มเกมได้ (ผู้เล่นอาจยังไม่ครบตามจำนวนที่กำหนด)");
                 }
 
             } catch (error) {
-
                 console.error(error);
-
                 alert("เกิดข้อผิดพลาด: " + error.message);
-
             } finally {
-
                 startGameBtn.disabled = false;
-
-                startGameBtn.textContent = "🐺 เริ่มเกม";
-
+                startGameBtn.textContent = "เริ่มเกม (แจกบทบาท)";
             }
-
         };
 
-        // =========================
-        // LEAVE ROOM
-        // =========================
-
-        document.getElementById("leaveRoomBtn")
-            .onclick = () => {
-
-                if (!confirm("ต้องการออกจากห้องหรือไม่?")) {
-                    return;
-                }
-
-                localStorage.removeItem("werewolf_player");
-
-                window.location.href = "index.html";
-
-            };
-
+        // ออกจากห้อง
+        document.getElementById("leaveRoomBtn").onclick = () => {
+            if (!confirm("ต้องการออกจากห้องหรือไม่?")) {
+                return;
+            }
+            localStorage.removeItem("hotel_murder_session");
+            window.location.href = "index.html";
+        };
     </script>
 
 </body>
