@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>Werewolf Game - Room</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-6">
+    <div class="max-w-md mx-auto space-y-6">
+        <div class="bg-gray-800 p-4 rounded-xl flex justify-between items-center">
+            <h2 id="roomTitle" class="font-bold text-lg">รหัสห้อง: LOADING...</h2>
+            <button id="startBtn" class="hidden bg-green-600 px-4 py-1 rounded font-bold">เริ่มเกม</button>
+        </div>
+
+        <!-- หน้าจอห้องรอ -->
+        <div id="waitingScreen" class="bg-gray-800 p-6 rounded-xl space-y-4">
+            <h3 class="text-xl font-semibold">ผู้เล่นในห้อง</h3>
+            <ul id="playerList" class="space-y-2"></ul>
+        </div>
+
+        <!-- หน้าจอเล่นเกม (กลางคืน/กลางวัน) -->
+        <div id="gameScreen" class="hidden bg-gray-800 p-6 rounded-xl space-y-4 text-center">
+            <div id="myRoleBox" class="p-4 bg-gray-700 rounded-lg">
+                <p class="text-sm text-gray-400">บทบาทของคุณคือ:</p>
+                <h1 id="myRoleText" class="text-3xl font-bold text-yellow-400">กำลังโหลด...</h1>
+            </div>
+
+            <div id="actionContainer" class="space-y-3">
+                <p id="phaseText" class="text-lg font-semibold text-red-400">🌙 ถึงเวลาค่ำคืน...</p>
+                <div id="targetList" class="space-y-2"></div>
+            </div>
+
+            <div id="resultBox" class="hidden p-4 bg-red-900/50 border border-red-500 rounded-lg">
+                <h3 class="font-bold text-xl text-red-300">☀️ ผลลัพธ์ประจำคืน</h3>
+                <p id="resultText" class="mt-2">-</p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, ref, onValue, update, get } from "./firebase-config.js";
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomCode = urlParams.get('code');
+        const localData = JSON.parse(localStorage.getItem('werewolf_player') || '{}');
+
+        if (!roomCode || !localData.playerId) {
+            window.location.href = 'index.html';
+        }
+
+        document.getElementById('roomTitle').innerText = `ห้อง: ${roomCode}`;
+        const roomRef = ref(db, 'rooms/' + roomCode);
+
+        onValue(roomRef, (snapshot) => {
+            if (!snapshot.exists()) return;
+            const room = snapshot.val();
+
+            // อัปเดตรายชื่อผู้เล่นในห้องรอ
+            const playerList = document.getElementById('playerList');
+            playerList.innerHTML = '';
+            let playerArray = Object.entries(room.players || {});
+            
+            playerArray.forEach(([id, p]) => {
+                const li = document.createElement('li');
+                li.className = "p-2 bg-gray-700 rounded flex justify-between";
+                li.innerHTML = `<span>${p.name}</span> ${id === room.host ? '👑 Host' : ''}`;
+                playerList.appendChild(li);
+            });
+
+            // เช็คว่าเป็น Host และเกมยังไม่เริ่ม ให้แสดงปุ่มเริ่มเกม
+            if (room.host === localData.playerId && room.status === 'WAITING') {
+                document.getElementById('startBtn').classList.remove('hidden');
+            }
+
+            // ถ้าเกมเปลี่ยนสถานะเป็นเล่นแล้ว
+            if (room.status !== 'WAITING') {
+                document.getElementById('waitingScreen').classList.add('hidden');
+                document.getElementById('gameScreen').classList.remove('hidden');
+                document.getElementById('startBtn').classList.add('hidden');
+
+                // แสดง Role ของตัวเอง
+                const myRole = room.players[localData.playerId].role;
+                document.getElementById('myRoleText').innerText = myRole;
+
+                if (room.status === 'NIGHT') {
+                    document.getElementById('phaseText').innerText = "🌙 คืนนี้... เลือกเป้าหมายของคุณ";
+                    renderTargets(playerArray, room);
+                } else if (room.status === 'DAY_REVEAL') {
+                    document.getElementById('phaseText').innerText = "☀️ ตื่นเช้าแล้ว!";
+                    document.getElementById('targetList').innerHTML = '';
+                    document.getElementById('resultBox').classList.remove('hidden');
+                    document.getElementById('resultText').innerText = room.nightResult || 'ไม่มีใครตายเมื่อคืนนี้';
+                }
+            }
+        });
+
+        // ปุ่มเริ่มเกม (สุ่ม Role และเปลี่ยนสถานะห้องเป็น NIGHT)
+        document.getElementById('startBtn').onclick = async () => {
+            const snapshot = await get(roomRef);
+            const room = snapshot.val();
+            let pIds = Object.keys(room.players);
+            
+            if (pIds.length < 3) return alert('ต้องมีผู้เล่นอย่างน้อย 3 คนถึงจะเริ่มได้!');
+
+            // สุ่ม Role ง่ายๆ (หมาป่า 1 คน ที่เหลือชาวบ้าน)
+            let werewolfIndex = Math.floor(Math.random() * pIds.length);
+            let updates = {};
+            
+            pIds.forEach((id, idx) => {
+                updates[`players/${id}/role`] = (idx === werewolfIndex) ? 'Werewolf' : 'Villager';
+            });
+            updates['status'] = 'NIGHT';
+
+            await update(roomRef, updates);
+        };
+
+        // แสดงรายชื่อเป้าหมายให้เลือกจัดการตอนกลางคืน
+        function renderTargets(playerArray, room) {
+            const targetList = document.getElementById('targetList');
+            targetList.innerHTML = '<p class="text-sm text-gray-400">เลือกคนที่คุณต้องการกำจัด:</p>';
+            
+            playerArray.forEach(([id, p]) => {
+                if (id === localData.playerId || !p.isAlive) return; // ไม่ให้เลือกตัวเอง หรือคนตายแล้ว
+                const btn = document.createElement('button');
+                btn.className = "w-full bg-gray-700 hover:bg-red-600 p-2 rounded transition";
+                btn.innerText = `โหวตสังหาร: ${p.name}`;
+                btn.onclick = async () => {
+                    // บันทึก Action ลง Firebase และคำนวณผลทันที (จำลองแบบง่ายให้จบในคลิกเดียว)
+                    await update(roomRef, {
+                        status: 'DAY_REVEAL',
+                        nightResult: `${p.name} ถูกหมาป่าลอบสังหารเมื่อคืนนี้!`
+                    });
+                };
+                targetList.appendChild(btn);
+            });
+        }
+    </script>
+</body>
+</html>

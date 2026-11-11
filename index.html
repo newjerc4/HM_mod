@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>Werewolf Game - Lobby</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center h-screen">
+    <div class="bg-gray-800 p-8 rounded-xl shadow-lg w-96 space-y-4">
+        <h1 class="text-2xl font-bold text-center text-red-500">🐺 Werewolf Online</h1>
+        
+        <div>
+            <label class="block text-sm mb-1">ชื่อของคุณ</label>
+            <input type="text" id="playerName" class="w-full p-2 rounded bg-gray-700 border border-gray-600 focus:outline-none" placeholder="กรอกชื่อ...">
+        </div>
+
+        <button id="createRoomBtn" class="w-full bg-red-600 hover:bg-red-700 p-2 rounded font-bold transition">สร้างห้องใหม่</button>
+        
+        <div class="border-t border-gray-700 pt-4 space-y-2">
+            <input type="text" id="roomCodeInput" class="w-full p-2 rounded bg-gray-700 border border-gray-600 uppercase focus:outline-none" placeholder="รหัสห้อง (เช่น WOLF123)">
+            <button id="joinRoomBtn" class="w-full bg-blue-600 hover:bg-blue-700 p-2 rounded font-bold transition">เข้าห้อง</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db, ref, set, get } from "./firebase-config.js";
+
+        const generateRoomCode = () => Math.random().toString(36).substring(2, 7).toUpperCase();
+
+        document.getElementById('createRoomBtn').onclick = async () => {
+            const name = document.getElementById('playerName').value.trim();
+            if (!name) return alert('กรุณากรอกชื่อก่อน!');
+            
+            const roomCode = generateRoomCode();
+            const playerId = 'p_' + Math.random().toString(36).substring(2, 7);
+
+            // สร้างข้อมูลห้องตั้งต้น
+            await set(ref(db, 'rooms/' + roomCode), {
+                status: 'WAITING', // WAITING, NIGHT, DAY
+                host: playerId,
+                players: {
+                    [playerId]: { name: name, role: 'Villager', isAlive: true }
+                }
+            });
+
+            localStorage.setItem('werewolf_player', JSON.stringify({ roomCode, playerId, name }));
+            window.location.href = `room.html?code=${roomCode}`;
+        };
+
+        document.getElementById('joinRoomBtn').onclick = async () => {
+            const name = document.getElementById('playerName').value.trim();
+            const roomCode = document.getElementById('roomCodeInput').value.trim().toUpperCase();
+            if (!name || !roomCode) return alert('กรุณากรอกชื่อและรหัสห้อง!');
+
+            const roomRef = ref(db, 'rooms/' + roomCode);
+            const snapshot = await get(roomRef);
+
+            if (!snapshot.exists()) return alert('ไม่พบห้องนี้!');
+            const roomData = snapshot.val();
+            if (roomData.status !== 'WAITING') return alert('เกมเริ่มไปแล้ว ไม่สามารถเข้าได้!');
+
+            const playerId = 'p_' + Math.random().toString(36).substring(2, 7);
+            await set(ref(db, `rooms/${roomCode}/players/${playerId}`), { name, role: 'Villager', isAlive: true });
+
+            localStorage.setItem('werewolf_player', JSON.stringify({ roomCode, playerId, name }));
+            window.location.href = `room.html?code=${roomCode}`;
+        };
+    </script>
+</body>
+</html>
