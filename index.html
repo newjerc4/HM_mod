@@ -3,74 +3,228 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Werewolf Game Lobby</title>
-    <!-- โหลด Tailwind CSS -->
+    <title>คดีฆาตกรรมปริศนาในโรงแรม - หน้าแรก</title>
+    <!-- ใช้ Tailwind CSS เพื่อความสวยงามและรวดเร็ว -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-900 text-white flex justify-center items-center h-screen">
+<body class="bg-slate-950 text-slate-100 min-h-screen flex items-center justify-center p-4">
 
-    <div class="bg-gray-800 p-6 rounded-lg shadow-lg w-80">
-        <h2 class="text-2xl font-bold mb-4 text-center">ปริศนาคดีฆาตกรรมโรงแรมปิดตาย</h2>
+    <div class="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl shadow-xl p-8 space-y-6">
         
-        <!-- ช่องกรอกชื่อ -->
-        <label class="block mb-2 text-sm">ชื่อของคุณ:</label>
-        <input type="text" id="playerName" class="w-full p-2 mb-4 bg-gray-700 rounded text-white" placeholder="กรอกชื่อ...">
+        <!-- หัวข้อเกม -->
+        <div class="text-center">
+            <h1 class="text-3xl font-extrabold text-amber-400 tracking-wider">HOTEL MURDER</h1>
+            <p class="text-slate-400 text-sm mt-1">คดีฆาตกรรมปริศนาในโรงแรม</p>
+        </div>
 
-        <!-- ปุ่มสร้างห้องที่คุณส่งมา -->
-        <button id="createRoomBtn" class="w-full bg-red-600 hover:bg-red-700 p-2 rounded font-bold transition mb-3">สร้างห้องใหม่</button>
-        
-        <hr class="border-gray-600 my-3">
+        <!-- ฟอร์มกรอกชื่อผู้เล่น -->
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1">ชื่อผู้เล่นของคุณ</label>
+                <input type="text" id="playerNameInput" placeholder="กรอกชื่อของคุณ..." 
+                    class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-400 transition">
+            </div>
 
-        <!-- ช่องกรอกรหัสห้องสำหรับ Join -->
-        <input type="text" id="roomCodeInput" class="w-full p-2 mb-2 bg-gray-700 rounded text-white uppercase" placeholder="รหัสห้อง 5 หลัก">
-        <button id="joinRoomBtn" class="w-full bg-blue-600 hover:bg-blue-700 p-2 rounded font-bold transition">เข้าร่วมห้อง</button>
+            <hr class="border-slate-800 my-4">
+
+            <!-- ส่วนสร้างห้อง (Host Section) -->
+            <div class="bg-slate-950/50 p-4 rounded-xl border border-slate-800/80 space-y-3">
+                <h2 class="text-sm font-semibold text-amber-400 uppercase tracking-wide">สร้างห้องใหม่ (Host)</h2>
+                
+                <!-- Dropdown เลือกจำนวนผู้เล่น -->
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">จำนวนผู้เล่น (6 - 10 คน):</label>
+                    <select id="playerCountSelect" onchange="updateRolePreview()" 
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-amber-400">
+                        <option value="6">6 คน</option>
+                        <option value="7">7 คน</option>
+                        <option value="8">8 คน</option>
+                        <option value="9">9 คน</option>
+                        <option value="10">10 คน</option>
+                    </select>
+                </div>
+
+                <!-- พรีวิวบทบาทที่จะใช้ -->
+                <div class="bg-slate-900/80 rounded-lg p-3 border border-slate-800">
+                    <span class="text-xs font-medium text-slate-400 block mb-2">บทบาทที่จะสุ่มในเกมนี้:</span>
+                    <ul id="roleListPreview" class="space-y-1 text-xs text-slate-300 max-h-28 overflow-y-auto pr-1">
+                        <!-- เติมด้วย JS -->
+                    </ul>
+                </div>
+
+                <button onclick="createRoom()" 
+                    class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3 rounded-xl transition shadow-lg shadow-amber-500/10">
+                    สร้างห้องเกม
+                </button>
+            </div>
+
+            <!-- ส่วนเข้าร่วมห้อง (Join Section) -->
+            <div class="space-y-3 pt-2">
+                <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wide">เข้าร่วมห้องที่มีอยู่</h2>
+                <div>
+                    <input type="text" id="roomCodeInput" placeholder="กรอกรหัสห้อง (เช่น A1B2)" 
+                        class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white uppercase tracking-widest text-center focus:outline-none focus:border-amber-400 transition">
+                </div>
+                <button onclick="joinRoom()" 
+                    class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl border border-slate-700 transition">
+                    เข้าร่วมห้อง
+                </button>
+            </div>
+
+        </div>
     </div>
 
-    <!-- ส่วนของ JavaScript ที่ควบคุมปุ่ม -->
+    <!-- Script เชื่อมต่อ Firebase และจัดการ Logic หน้าแรก -->
     <script type="module">
         import { db, ref, set, get } from "./firebase-config.js";
 
-        const generateRoomCode = () => Math.random().toString(36).substring(2, 7).toUpperCase();
-
-        // ฟังก์ชันเมื่อกดปุ่ม "สร้างห้องใหม่"
-        document.getElementById('createRoomBtn').onclick = async () => {
-            const name = document.getElementById('playerName').value.trim();
-            if (!name) return alert('กรุณากรอกชื่อก่อน!');
-            
-            const roomCode = generateRoomCode();
-            const playerId = 'p_' + Math.random().toString(36).substring(2, 7);
-
-            // บันทึกข้อมูลห้องลง Firebase Realtime Database
-            await set(ref(db, 'rooms/' + roomCode), {
-                status: 'WAITING', 
-                host: playerId,
-                players: {
-                    [playerId]: { name: name, role: 'Villager', isAlive: true }
-                }
-            });
-
-            localStorage.setItem('werewolf_player', JSON.stringify({ roomCode, playerId, name }));
-            window.location.href = `room.html?code=${roomCode}`;
+        // กำหนดชุดบทบาทตามจำนวนผู้เล่น
+        const ROLE_PRESETS = {
+            6: ["Killer", "Accomplice", "Locksmith", "Housekeeper", "GlassCleaner", "Innocent"],
+            7: ["Killer", "Accomplice", "Locksmith", "Housekeeper", "GlassCleaner", "Detective", "Innocent"],
+            8: ["Killer", "Accomplice", "Locksmith", "Housekeeper", "GlassCleaner", "Detective", "Witness", "Innocent"],
+            9: ["Killer", "Accomplice", "Locksmith", "Housekeeper", "GlassCleaner", "Detective", "Witness", "Innocent", "Innocent"],
+            10: ["Killer", "Accomplice", "Locksmith", "Housekeeper", "GlassCleaner", "Detective", "Witness", "Innocent", "Innocent", "Innocent"]
         };
 
-        // ฟังก์ชันเมื่อกดปุ่ม "เข้าร่วมห้อง"
-        document.getElementById('joinRoomBtn').onclick = async () => {
-            const name = document.getElementById('playerName').value.trim();
-            const roomCode = document.getElementById('roomCodeInput').value.trim().toUpperCase();
-            if (!name || !roomCode) return alert('กรุณากรอกชื่อและรหัสห้อง!');
+        const ROLE_NAMES_TH = {
+            Killer: "🗡️ คนร้าย (Killer)",
+            Accomplice: "🤝 ผู้ช่วยคนร้าย (Accomplice)",
+            Locksmith: "🔑 ช่างทำกุญแจ (Locksmith)",
+            Housekeeper: "🧹 แม่บ้าน (Floor Scanner)",
+            GlassCleaner: "🪟 ช่างเช็ดกระจก (Column Scanner)",
+            Detective: "🔍 นักสืบ (Player Tracker)",
+            Witness: "👁️ พยาน (Higher/Lower Sensor)",
+            Innocent: "👤 ชาวบ้าน (Innocent)"
+        };
 
-            const roomRef = ref(db, 'rooms/' + roomCode);
+        // ฟังก์ชันอัปเดตรายการพรีวิวบทบาท
+        window.updateRolePreview = function() {
+            const selectedCount = document.getElementById("playerCountSelect").value;
+            const roles = ROLE_PRESETS[selectedCount];
+            const listContainer = document.getElementById("roleListPreview");
+            listContainer.innerHTML = "";
+
+            roles.forEach(roleKey => {
+                const li = document.createElement("li");
+                li.className = "flex items-center space-x-2 bg-slate-950/60 px-2.5 py-1 rounded border border-slate-800/50";
+                li.innerHTML = `<span>${ROLE_NAMES_TH[roleKey] || roleKey}</span>`;
+                listContainer.appendChild(li);
+            });
+        };
+
+        // เรียกใช้งานครั้งแรกตอนโหลดหน้าเว็บ
+        document.addEventListener("DOMContentLoaded", () => {
+            updateRolePreview();
+        });
+
+        // ฟังก์ชันสร้างรหัสห้องสุ่มสั้นๆ (เช่น 4 ตัวอักษร)
+        function generateRoomCode() {
+            return Math.random().toString(36).substring(2, 6).toUpperCase();
+        }
+
+        // ฟังก์ชันสร้างห้อง
+        window.createRoom = async function() {
+            const playerName = document.getElementById("playerNameInput").value.trim();
+            const maxPlayers = parseInt(document.getElementById("playerCountSelect").value);
+
+            if (!playerName) {
+                alert("กรุณากรอกชื่อผู้เล่นก่อนสร้างห้อง!");
+                return;
+            }
+
+            const roomCode = generateRoomCode();
+            const playerId = "p_" + Math.random().toString(36).substring(2, 8);
+
+            const roomRef = ref(db, `rooms/${roomCode}`);
+            
+            // ข้อมูลที่จะบันทึกตั้งต้นลง Firebase
+            const roomData = {
+                status: "WAITING",
+                maxPlayers: maxPlayers,
+                config: {
+                    rolesToUse: ROLE_PRESETS[maxPlayers]
+                },
+                players: {
+                    [playerId]: {
+                        name: playerName,
+                        isHost: true,
+                        isAlive: true
+                    }
+                }
+            };
+
+            try {
+                await set(roomRef, roomData);
+
+                // บันทึก Session ลง localStorage เพื่อใช้อ้างอิงต่อในหน้าห้อง (room.html)
+                localStorage.setItem("hotel_murder_session", JSON.stringify({
+                    roomCode,
+                    playerId,
+                    playerName,
+                    isHost: true
+                }));
+
+                // เปลี่ยนหน้าไปที่ room.html
+                window.location.href = `room.html?room=${roomCode}`;
+            } catch (error) {
+                console.error("Error creating room: ", error);
+                alert("เกิดข้อผิดพลาดในการสร้างห้อง กรุณาลองใหม่อีกครั้ง");
+            }
+        };
+
+        // ฟังก์ชันเข้าร่วมห้อง
+        window.joinRoom = async function() {
+            const playerName = document.getElementById("playerNameInput").value.trim();
+            const roomCode = document.getElementById("roomCodeInput").value.trim().toUpperCase();
+
+            if (!playerName || !roomCode) {
+                alert("กรุณากรอกชื่อและรหัสห้องให้ครบถ้วน!");
+                return;
+            }
+
+            const roomRef = ref(db, `rooms/${roomCode}`);
             const snapshot = await get(roomRef);
 
-            if (!snapshot.exists()) return alert('ไม่พบห้องนี้!');
+            if (!snapshot.exists()) {
+                alert("ไม่พบรหัสห้องนี้ในระบบ!");
+                return;
+            }
+
             const roomData = snapshot.val();
-            if (roomData.status !== 'WAITING') return alert('เกมเริ่มไปแล้ว ไม่สามารถเข้าได้!');
+            
+            if (roomData.status !== "WAITING") {
+                alert("ห้องนี้ได้เริ่มเกมไปแล้ว ไม่สามารถเข้าร่วมได้!");
+                return;
+            }
 
-            const playerId = 'p_' + Math.random().toString(36).substring(2, 7);
-            await set(ref(db, `rooms/${roomCode}/players/${playerId}`), { name, role: 'Villager', isAlive: true });
+            const players = roomData.players || {};
+            const playerCount = Object.keys(players).length;
 
-            localStorage.setItem('werewolf_player', JSON.stringify({ roomCode, playerId, name }));
-            window.location.href = `room.html?code=${roomCode}`;
+            if (playerCount >= roomData.maxPlayers) {
+                alert("ห้องนี้เต็มแล้ว!");
+                return;
+            }
+
+            const playerId = "p_" + Math.random().toString(36).substring(2, 8);
+
+            // เพิ่มผู้เล่นใหม่เข้าไปในห้อง
+            await set(ref(db, `rooms/${roomCode}/players/${playerId}`), {
+                name: playerName,
+                isHost: false,
+                isAlive: true
+            });
+
+            // บันทึก Session ลง localStorage
+            localStorage.setItem("hotel_murder_session", JSON.stringify({
+                roomCode,
+                playerId,
+                playerName,
+                isHost: false
+            }));
+
+            // เปลี่ยนหน้าไปที่ room.html
+            window.location.href = `room.html?room=${roomCode}`;
         };
     </script>
 </body>
