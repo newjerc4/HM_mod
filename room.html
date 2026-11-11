@@ -114,10 +114,10 @@
             throw new Error("Player data not found");
         }
     
-        // 3. จัดการดึงค่า (ถ้าใน localStorage ไม่มี roomCode แต่ใน URL มี ให้ใช้จาก URL แทน)
+        // จัดการดึงค่า (ถ้าใน localStorage ไม่มี roomCode แต่ใน URL มี ให้ใช้จาก URL แทน)
         const roomCode = playerData.roomCode || roomCodeFromURL;
         const playerId = playerData.playerId;
-        const playerName = playerData.playerName; // แก้จาก name เป็น playerName ตามที่คุยกันก่อนหน้านี้
+        const playerName = playerData.playerName; 
     
         if (!roomCode) {
             alert("ไม่พบรหัสห้อง!");
@@ -125,7 +125,6 @@
             throw new Error("Room code not found");
         }
 
-        const { roomCode, playerId, playerName } = playerData;
         const roomRef = ref(db, `rooms/${roomCode}`);
 
         // Elements
@@ -244,9 +243,9 @@
 
                         const maxPlayers = data.maxPlayers || 6;
                         
-                        // ตรวจสอบว่าผู้เล่นครบตามจำนวนที่กำหนดไหม (หรืออย่างน้อยตามจำนวน Preset)
+                        // ตรวจสอบว่าผู้เล่นครบตามจำนวนที่กำหนดไหม
                         if (playerIds.length < maxPlayers) {
-                            return; // ถ้ายังไม่ครบ ไม่ให้เริ่ม
+                            return; 
                         }
 
                         // ดึงรายการบทบาทที่เตรียมไว้ตามจำนวนคน
