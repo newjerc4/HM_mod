@@ -62,7 +62,7 @@
             <div class="space-y-3 pt-2">
                 <h2 class="text-sm font-semibold text-slate-300 uppercase tracking-wide">เข้าร่วมห้องที่มีอยู่</h2>
                 <div>
-                    <input type="text" id="roomCodeInput" placeholder="กรอกรหัสห้อง (เช่น A1B2)" 
+                    <input type="text" id="roomCodeInput" placeholder="กรอกรหัสห้อง (5 หลัก)" maxlength="5"
                         class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white uppercase tracking-widest text-center focus:outline-none focus:border-amber-400 transition">
                 </div>
                 <button onclick="joinRoom()" 
@@ -118,9 +118,9 @@
             updateRolePreview();
         });
 
-        // ฟังก์ชันสร้างรหัสห้องสุ่มสั้นๆ (เช่น 4 ตัวอักษร)
+        // ฟังก์ชันสร้างรหัสห้องสุ่ม 5 หลัก
         function generateRoomCode() {
-            return Math.random().toString(36).substring(2, 6).toUpperCase();
+            return Math.random().toString(36).substring(2, 7).toUpperCase();
         }
 
         // ฟังก์ชันสร้างห้อง
