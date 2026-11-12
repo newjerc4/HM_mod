@@ -32,7 +32,7 @@
         <!-- ประกาศข่าวประจำวัน (แสดงตอนเช้า) -->
         <div id="morningNewsBox" class="hidden bg-rose-950/40 border border-rose-500/40 p-4 rounded-2xl space-y-1 shadow-xl">
             <h3 class="text-sm font-bold text-rose-400 flex items-center gap-2">
-                <span>📰</span> ข่าวด่วนประจำเช้านี้
+                <span>📰</span> สรุปเหตุการณ์เมื่อคืน (ข่าวด่วนประจำเช้านี้)
             </h3>
             <p id="morningNewsText" class="text-sm text-slate-200 leading-relaxed">-</p>
         </div>
@@ -58,12 +58,12 @@
             <!-- กล่องแสดงผลลัพธ์เบาะแสจากการใช้สกิล -->
             <div id="privateClueBox" class="hidden mt-3 pt-3 border-t border-slate-800">
                 <span class="text-xs font-bold text-sky-400 block mb-1">🔍 บันทึกเบาะแสส่วนตัวของคุณ:</span>
-                <div id="privateClueList" class="space-y-1 text-xs text-slate-200 bg-slate-950/70 p-3 rounded-xl border border-slate-800">
+                <div id="privateClueList" class="space-y-1.5 text-xs text-slate-200 bg-slate-950/80 p-3 rounded-xl border border-sky-500/30">
                 </div>
             </div>
         </div>
 
-        <!-- กล่องควบคุมแอคชั่นตามบทบาท (Role Action Panel) -->
+        <!-- กล่องควบคุมแอคชั่นตามบทบาท -->
         <div id="roleActionPanel" class="hidden bg-slate-900 border border-amber-500/30 p-4 rounded-2xl space-y-3 shadow-xl">
             <div class="flex justify-between items-center">
                 <h3 id="actionTitle" class="text-sm font-bold text-amber-400">🌙 ภารกิจคืนนี้ของคุณ</h3>
@@ -92,7 +92,7 @@
             </p>
         </div>
 
-        <!-- แผนผังโรงแรม (Hotel Map Grid - 9 ชั้น พร้อมแถบปิดปรับปรุง) -->
+        <!-- แผนผังโรงแรม -->
         <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3 shadow-xl">
             <div class="flex justify-between items-center">
                 <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
@@ -144,6 +144,18 @@
         </div>
     </div>
 
+    <!-- Modal แจ้งผลลัพธ์ทันที (Instant Result Modal) -->
+    <div id="resultModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-sky-500/40 p-6 rounded-2xl max-w-sm w-full space-y-4 shadow-2xl text-center">
+            <div class="text-4xl">🔍</div>
+            <h3 class="text-lg font-bold text-sky-400">ผลการตรวจสอบ</h3>
+            <p id="resultModalText" class="text-sm text-slate-200 leading-relaxed bg-slate-950/70 p-3 rounded-xl border border-slate-800">-</p>
+            <button onclick="closeResultModal()" class="w-full bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold py-2.5 rounded-xl transition text-sm shadow-lg shadow-sky-500/20">
+                รับทราบ
+            </button>
+        </div>
+    </div>
+
     <script type="module">
         import {
             db,
@@ -168,11 +180,11 @@
 
         const ROLE_DESCRIPTIONS = {
             Killer: "เลือก 1 ห้องบนแผนผังโรงแรมเพื่อบุกสังหารเป้าหมายคืนนี้",
-            Accomplice: "เลือก 1 ห้องบนแผนผังเพื่อสอดแนมว่ามีผู้เล่นพักอยู่หรือไม่",
+            Accomplice: "เลือกผู้เล่น 1 คน เพื่อสืบว่าคืนนี้เขาพักอยู่ที่ชั้นไหน (รู้ผลทันที)",
             Locksmith: "เลือก 1 ห้องบนแผนผังเพื่อล็อกประตู ป้องกันคนร้ายบุกคืนนี้",
-            Housekeeper: "เลือก 1 ชั้น เพื่อตรวจสอบว่ามีผู้เล่นพักอยู่ในชั้นนั้นกี่คน",
-            GlassCleaner: "เลือก 1 คอลัมน์ (01, 02, 03) เพื่อนับจำนวนคนในแนวตั้งทั้งหมด",
-            Detective: "เลือกผู้เล่น 1 คน เพื่อสืบว่าคืนนี้เขาพักอยู่ที่ชั้นไหน",
+            Housekeeper: "เลือก 1 ชั้น เพื่อตรวจสอบว่ามีผู้เล่นพักอยู่ในชั้นนั้นกี่คน (รู้ผลทันที)",
+            GlassCleaner: "เลือก 1 คอลัมน์ (01, 02, 03) เพื่อนับจำนวนคนที่ยังมีชีวิตในแนวตั้งทั้งหมด (รู้ผลทันที)",
+            Detective: "เลือกผู้เล่น 1 คน เพื่อสืบว่าคืนนี้เขาพักอยู่ที่ชั้นไหน (รู้ผลทันที)",
             Witness: "เลือก 1 ชั้นอ้างอิง เพื่อดูว่าชั้นที่คนร้ายลงมืออยู่สูงหรือต่ำกว่าชั้นนี้",
             Innocent: "คุณไม่มีความสามารถพิเศษในตอนกลางคืน กดปุ่มเข้านอนเพื่อรอเช้าวันใหม่"
         };
@@ -237,6 +249,9 @@
 
         const confirmModal = document.getElementById("confirmModal");
         const confirmModalDesc = document.getElementById("confirmModalDesc");
+        
+        const resultModal = document.getElementById("resultModal");
+        const resultModalText = document.getElementById("resultModalText");
 
         displayRoomCode.textContent = roomCode;
         myName.textContent = playerName;
@@ -280,27 +295,94 @@
         };
 
         window.closeConfirmModal = function() {
-            confirmModal.classList.remove("flex");
+            confirmModal.classList.remove("hidden");
             confirmModal.classList.add("hidden");
             pendingActionPayload = null;
         };
 
+        window.openResultModal = function(text) {
+            resultModalText.innerHTML = text;
+            resultModal.classList.remove("hidden");
+            resultModal.classList.add("flex");
+        };
+
+        window.closeResultModal = function() {
+            resultModal.classList.remove("flex");
+            resultModal.classList.add("hidden");
+        };
+
+        // กดยืนยันคำสั่ง และประมวลผลผลลัพธ์ทันที
         window.submitConfirmedAction = async function() {
             if (!pendingActionPayload || !currentRoomData) return;
 
             const payload = pendingActionPayload;
             closeConfirmModal();
 
-            try {
-                if (currentRoomData.status === "NIGHT") {
-                    await set(ref(db, `rooms/${roomCode}/nightActions/${playerId}`), payload);
-                    await checkAndResolveNight();
-                } else if (currentRoomData.status === "DAY") {
-                    await set(ref(db, `rooms/${roomCode}/dayVotes/${playerId}`), payload);
+            const nightNum = currentRoomData.nightCount || 1;
+            const players = currentRoomData.players || {};
+            const me = players[playerId];
+            let resultMessage = "";
+
+            // คำนวณผลลัพธ์ทันทีตามบทบาท
+            if (currentRoomData.status === "NIGHT") {
+                if (me.role === "Housekeeper" && payload.type === "FLOOR") {
+                    const targetFloor = parseInt(payload.target);
+                    const count = Object.keys(players).filter(pid => {
+                        const p = players[pid];
+                        return p.isAlive && p.currentRoom && parseInt(p.currentRoom[0]) === targetFloor;
+                    }).length;
+                    resultMessage = `🧹 ผลตรวจชั้น ${targetFloor}: พบผู้เข้าพักทั้งหมด ${count} คนในชั้นนี้`;
                 }
-            } catch (error) {
-                console.error("Action Error:", error);
-                alert("เกิดข้อผิดพลาดในการส่งข้อมูล: " + error.message);
+                else if (me.role === "GlassCleaner" && payload.type === "COLUMN") {
+                    const targetCol = payload.target;
+                    const count = Object.keys(players).filter(pid => {
+                        const p = players[pid];
+                        return p.isAlive && p.currentRoom && p.currentRoom.endsWith(targetCol);
+                    }).length;
+                    resultMessage = `🪟 ผลสแกนคอลัมน์ ${targetCol}: พบผู้เข้าพักรวม ${count} คนในแนวตั้งนี้ทุกชั้น`;
+                }
+                else if ((me.role === "Detective" || me.role === "Accomplice") && payload.type === "PLAYER") {
+                    const targetPlayer = players[payload.target];
+                    if (targetPlayer && targetPlayer.currentRoom) {
+                        const floor = targetPlayer.currentRoom[0];
+                        const roleTitle = me.role === "Detective" ? "🔍 นักสืบ" : "🤝 ผู้ช่วย";
+                        resultMessage = `${roleTitle}สืบทราบว่า: คุณ ${targetPlayer.name} พักอยู่ที่ <b>ชั้น ${floor}</b>`;
+                    } else {
+                        resultMessage = `เป้าหมายไม่ได้อยู่ในห้องพักตอนนี้`;
+                    }
+                }
+                else if (me.role === "Witness" && payload.type === "FLOOR") {
+                    resultMessage = `👁️ บันทึกชั้นอ้างอิง ${payload.target} เรียบร้อย (รอสรุปเป้าหมายคนร้ายตอนเช้า)`;
+                }
+                else {
+                    resultMessage = `✅ บันทึกคำสั่งสำเร็จ (${payload.label})`;
+                }
+
+                // บันทึกคำสั่งและเบาะแสลง Firebase ทันที
+                if (!me.clues) me.clues = [];
+                me.clues.push(`คืนที่ ${nightNum}: ${resultMessage}`);
+
+                try {
+                    await set(ref(db, `rooms/${roomCode}/nightActions/${playerId}`), payload);
+                    await update(ref(db, `rooms/${roomCode}/players/${playerId}`), { clues: me.clues });
+                    
+                    // เด้ง Modal โชว์ผลลัพธ์ทันที
+                    openResultModal(resultMessage);
+                    
+                    // เช็คว่าทุกคนส่งครบหรือยังเพื่อประมวลผลเช้าวันใหม่
+                    await checkAndResolveNight();
+                } catch (error) {
+                    console.error("Action Error:", error);
+                    alert("เกิดข้อผิดพลาด: " + error.message);
+                }
+            } 
+            else if (currentRoomData.status === "DAY") {
+                try {
+                    await set(ref(db, `rooms/${roomCode}/dayVotes/${playerId}`), payload);
+                    alert(`🗳️ คุณได้โหวต ${payload.label} เรียบร้อยแล้ว`);
+                } catch (error) {
+                    console.error("Vote Error:", error);
+                }
             }
         };
 
@@ -313,8 +395,9 @@
                 const aliveIds = Object.keys(players).filter(id => players[id].isAlive);
 
                 const allSubmitted = aliveIds.every(id => nightActions[id] !== undefined);
-                if (!allSubmitted) return;
+                if (!allSubmitted) return; // ยังไม่ครบ รอคนอื่น
 
+                // ประมวลผล ช่างกุญแจ และ คนร้าย
                 let lockedRoom = null;
                 aliveIds.forEach(id => {
                     if (players[id].role === "Locksmith" && nightActions[id]?.target) {
@@ -329,50 +412,20 @@
                     }
                 });
 
+                // อัปเดตเบาะแสให้พยานเพิ่มเติมตอนเช้า
                 const nightNum = data.nightCount || 1;
                 aliveIds.forEach(id => {
                     const p = players[id];
                     const act = nightActions[id];
-                    if (!p.clues) p.clues = [];
-
-                    if (p.role === "Housekeeper" && act?.target) {
-                        const targetFloor = parseInt(act.target);
-                        const count = aliveIds.filter(pid => {
-                            const r = players[pid].currentRoom;
-                            return r && parseInt(r[0]) === targetFloor;
-                        }).length;
-                        p.clues.push(`คืนที่ ${nightNum}: ชั้น ${targetFloor} มีผู้เข้าพักทั้งหมด ${count} คน`);
-                    }
-                    else if (p.role === "GlassCleaner" && act?.target) {
-                        const targetCol = act.target;
-                        const count = aliveIds.filter(pid => {
-                            const r = players[pid].currentRoom;
-                            return r && r.endsWith(targetCol);
-                        }).length;
-                        p.clues.push(`คืนที่ ${nightNum}: คอลัมน์ห้อง ${targetCol} ทุกชั้น มีผู้เข้าพักรวม ${count} คน`);
-                    }
-                    else if (p.role === "Detective" && act?.target) {
-                        const targetPlayer = players[act.target];
-                        if (targetPlayer && targetPlayer.currentRoom) {
-                            const floor = targetPlayer.currentRoom[0];
-                            p.clues.push(`คืนที่ ${nightNum}: คุณ ${targetPlayer.name} พักอยู่ที่ชั้น ${floor}`);
-                        }
-                    }
-                    else if (p.role === "Witness" && act?.target) {
+                    if (p.role === "Witness" && act?.target && killerTargetRoom) {
                         const refFloor = parseInt(act.target);
-                        if (killerTargetRoom) {
-                            const killerTargetFloor = parseInt(killerTargetRoom[0]);
-                            let hint = "";
-                            if (killerTargetFloor > refFloor) hint = `สูงกว่าชั้น ${refFloor} ⬆️`;
-                            else if (killerTargetFloor < refFloor) hint = `ต่ำกว่าชั้น ${refFloor} ⬇️`;
-                            else hint = `อยู่ชั้น ${refFloor} พอดี! 🎯`;
-                            p.clues.push(`คืนที่ ${nightNum}: เป้าหมายที่คนร้ายเลือก ${hint}`);
-                        }
-                    }
-                    else if (p.role === "Accomplice" && act?.target) {
-                        const occupant = aliveIds.find(pid => players[pid].currentRoom === act.target);
-                        const statusTxt = occupant ? `มีคนพักอยู่ (${players[occupant].name})` : "เป็นห้องว่าง";
-                        p.clues.push(`คืนที่ ${nightNum}: ห้อง ${act.target} ${statusTxt}`);
+                        const killerTargetFloor = parseInt(killerTargetRoom[0]);
+                        let hint = "";
+                        if (killerTargetFloor > refFloor) hint = `สูงกว่าชั้น ${refFloor} ⬆️`;
+                        else if (killerTargetFloor < refFloor) hint = `ต่ำกว่าชั้น ${refFloor} ⬇️`;
+                        else hint = `อยู่ชั้น ${refFloor} พอดี! 🎯`;
+                        if (!p.clues) p.clues = [];
+                        p.clues.push(`คืนที่ ${nightNum}: เป้าหมายที่คนร้ายเลือก ${hint}`);
                     }
                 });
 
@@ -420,10 +473,10 @@
                 const submittedCount = aliveIds.filter(id => nightActions[id]).length;
 
                 actionTitle.textContent = `🌙 ภารกิจคืนที่ ${data.nightCount || 1}`;
-                actionProgress.textContent = `ส่งคำสั่งแล้ว ${submittedCount}/${aliveIds.length} คน`;
+                actionProgress.textContent = `ดำเนินการแล้ว ${submittedCount}/${aliveIds.length} คน`;
 
                 if (myAction) {
-                    actionDesc.innerHTML = `<span class="text-emerald-400 font-bold">✅ คุณส่งคำสั่งคืนนี้เรียบร้อยแล้ว (${myAction.label})</span><br>กรุณารอผู้เล่นคนอื่นดำเนินการให้ครบ...`;
+                    actionDesc.innerHTML = `<span class="text-emerald-400 font-bold">✅ คุณได้ปฏิบัติภารกิจคืนนี้เรียบร้อยแล้ว (${myAction.label})</span><br>สามารถดูผลลัพธ์ย้อนหลังได้ที่กล่องบันทึกเบาะสด้านบน`;
                     return;
                 }
 
@@ -431,7 +484,7 @@
                 actionDesc.textContent = ROLE_DESCRIPTIONS[role] || "เลือกดำเนินการในคืนนี้";
                 const maxFloor = getMaxActiveFloor(data.maxPlayers || 6);
 
-                if (role === "Killer" || role === "Locksmith" || role === "Accomplice") {
+                if (role === "Killer" || role === "Locksmith") {
                     customActionControls.innerHTML = `
                         <div class="text-xs text-amber-300 bg-amber-500/10 border border-amber-500/20 p-2.5 rounded-xl text-center">
                             👆 กรุณากดเลือก <b>หมายเลขห้อง</b> จากแผนผังโรงแรมด้านล่าง
@@ -447,7 +500,7 @@
                         btn.textContent = `ชั้น ${f}`;
                         btn.onclick = () => {
                             openConfirmModal(
-                                `ยืนยันเลือกตรวจสอบ <b>ชั้นที่ ${f}</b> ใช่หรือไม่?`,
+                                `ยืนยันตรวจสอบ <b>ชั้นที่ ${f}</b> ใช่หรือไม่? (รู้ผลทันที)`,
                                 { type: "FLOOR", target: f, label: `ชั้น ${f}` }
                             );
                         };
@@ -464,7 +517,7 @@
                         btn.textContent = `แถวห้อง ${col}`;
                         btn.onclick = () => {
                             openConfirmModal(
-                                `ยืนยันสแกนแนวตั้ง <b>คอลัมน์ห้อง ${col}</b> ทุกชั้นใช่หรือไม่?`,
+                                `ยืนยันสแกนแนวตั้ง <b>คอลัมน์ห้อง ${col}</b> ใช่หรือไม่? (รู้ผลทันที)`,
                                 { type: "COLUMN", target: col, label: `คอลัมน์ ${col}` }
                             );
                         };
@@ -472,7 +525,8 @@
                     });
                     customActionControls.appendChild(grid);
                 }
-                else if (role === "Detective") {
+                else if (role === "Detective" || role === "Accomplice") {
+                    const roleTitle = role === "Detective" ? "นักสืบ" : "ผู้ช่วย";
                     const grid = document.createElement("div");
                     grid.className = "grid grid-cols-2 gap-2";
                     aliveIds.forEach(targetId => {
@@ -480,10 +534,10 @@
                         const targetP = players[targetId];
                         const btn = document.createElement("button");
                         btn.className = "bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-200 font-semibold py-2 px-3 rounded-xl text-xs border border-slate-700 transition truncate";
-                        btn.textContent = `🔍 ${targetP.name}`;
+                        btn.textContent = `👤 ${targetP.name}`;
                         btn.onclick = () => {
                             openConfirmModal(
-                                `ยืนยันสะกดรอยตาม <b>${targetP.name}</b> คืนนี้ใช่หรือไม่?`,
+                                `ยืนยันสืบหาชั้นที่ <b>${targetP.name}</b> พักอยู่ใช่หรือไม่?`,
                                 { type: "PLAYER", target: targetId, label: `สืบ ${targetP.name}` }
                             );
                         };
@@ -520,7 +574,6 @@
             }
         }
 
-        // แผนผังโรงแรมพร้อมแถบ "ปิดปรับปรุง" ตัวหนังสือสีขาว
         function renderHotelMap(data, me) {
             hotelMapContainer.innerHTML = "";
             const maxPlayers = data.maxPlayers || 6;
@@ -529,7 +582,7 @@
 
             const role = me.role;
             const canClickMapInNight = gameStatusState === "NIGHT" && me.isAlive && 
-                (role === "Killer" || role === "Locksmith" || role === "Accomplice") &&
+                (role === "Killer" || role === "Locksmith") &&
                 !(data.nightActions && data.nightActions[playerId]);
 
             const canClickMapInDay = gameStatusState === "DAY" && me.isAlive &&
@@ -574,7 +627,7 @@
                             btnStyle += "hover:bg-amber-500 hover:text-slate-950 cursor-pointer";
                             roomBtn.onclick = () => {
                                 const actionWord = gameStatusState === "NIGHT" 
-                                    ? (role === "Killer" ? "บุกสังหาร" : role === "Locksmith" ? "ล็อกป้องกัน" : "สอดแนม")
+                                    ? (role === "Killer" ? "บุกสังหาร" : "ล็อกป้องกัน")
                                     : "โหวตเปิดโปง";
                                 openConfirmModal(
                                     `ยืนยันเลือก <b>${actionWord}ห้อง ${roomCodeStr}</b> ใช่หรือไม่?`,
