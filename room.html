@@ -121,11 +121,9 @@
                     <span>👥</span> ผู้เล่นในห้อง
                 </h3>
                 <div class="flex items-center gap-2">
-                    <!-- ป้ายแสดงจำนวนผู้เล่น -->
                     <span id="playerCount" class="text-xs font-semibold bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full border border-slate-700">
                         จำนวนผู้เล่น: -
                     </span>
-                    <!-- ป้ายแสดงจำนวนผู้รอดชีวิต -->
                     <span id="survivalSummary" class="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
                         จำนวนผู้รอดชีวิต: -
                     </span>
@@ -572,7 +570,7 @@
                 }
 
                 if (!me.clues) me.clues = [];
-                me.clues.push(`คืนที่ ${nightNum}: ${resultMessage}`);
+                me.clues.push(`เทิร์นที่ ${nightNum}: ${resultMessage}`);
 
                 try {
                     await set(ref(db, `rooms/${roomCode}/nightActions/${playerId}`), payload);
@@ -1005,7 +1003,6 @@
 
             const currentStatus = data.status || "WAITING";
             
-            // เปลี่ยนสีพื้นหลังหน้าจอตามเฟส (ถ้าเป็น DAY จะเปลี่ยนเป็นสีนวลๆ สไตล์มินิมอล)
             if (currentStatus === "DAY") {
                 pageBody.className = "bg-slate-900 text-slate-100 min-h-screen p-4 pb-24 transition-colors duration-500";
             } else {
@@ -1044,7 +1041,7 @@
                 gameStatus.className = "font-bold text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-full border border-indigo-500/20";
             } else if (currentStatus === "DAY") {
                 gameStatus.textContent = "☀️ เฟสกลางวัน (Day)";
-                gameStatus.className = "font-bold text-amber-600 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20";
+                gameStatus.className = "font-bold text-amber-500 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20";
             }
 
             if (currentStatus === "DAY") {
@@ -1078,12 +1075,6 @@
                     startGameBtn.classList.add("hidden");
                     setupCrimeSceneBtn.classList.add("hidden");
                     resolveVoteBtn.classList.remove("hidden");
-                    nextNightBtn.classList.add("hidden");
-                } else if (currentStatus === "DAY_RESOLVED") {
-                    hostControls.classList.remove("hidden");
-                    startGameBtn.classList.add("hidden");
-                    setupCrimeSceneBtn.classList.add("hidden");
-                    resolveVoteBtn.classList.add("hidden");
                     nextNightBtn.classList.remove("hidden");
                 } else {
                     hostControls.classList.add("hidden");
@@ -1245,98 +1236,111 @@
         };
 
         resolveVoteBtn.onclick = async () => {
-            Swal.fire({
-                title: 'สรุปผลโหวตและประหาร?',
-                text: "ระบบจะนับคะแนนโหวตสูงสุดเพื่อประหารผู้เล่นห้องนั้น",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#e11d48',
-                cancelButtonColor: '#64748b',
-                confirmButtonText: 'ยืนยันประหาร',
-                cancelButtonText: 'ยกเลิก',
-                background: '#0f172a',
-                color: '#f8fafc'
-            }).then(async (result) => {
-                if (result.isConfirmed) {
-                    try {
-                        await runTransaction(roomRef, (data) => {
-                            if (!data || data.status !== "DAY") return;
-                            const dayVotes = data.dayVotes || {};
-                            const players = data.players || {};
-                            const closedRooms = data.closedRooms || {};
-                            const roomLabels = data.roomLabels || {};
+    Swal.fire({
+        title: 'สรุปผลโหวตและประหาร?',
+        text: "ระบบจะเช็คเสียงโหวตสูงสุดและตรวจสอบว่าเกินครึ่งของผู้รอดชีวิตหรือไม่",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#e11d48',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'ยืนยันสรุปผล',
+        cancelButtonText: 'ยกเลิก',
+        background: '#0f172a',
+        color: '#f8fafc'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                await runTransaction(roomRef, (data) => {
+                    if (!data || data.status !== "DAY") return;
+                    const dayVotes = data.dayVotes || {};
+                    const players = data.players || {};
+                    const closedRooms = data.closedRooms || {};
+                    const roomLabels = data.roomLabels || {};
 
-                            const voteCounts = {};
-                            Object.keys(dayVotes).forEach(pid => {
-                                const targetRoom = dayVotes[pid].target;
-                                voteCounts[targetRoom] = (voteCounts[targetRoom] || 0) + 1;
-                            });
+                    // 1. นับจำนวนผู้เล่นที่มีชีวิตอยู่ทั้งหมด
+                    const alivePlayerIds = Object.keys(players).filter(id => players[id].isAlive);
+                    const totalAlive = alivePlayerIds.length;
+                    
+                    // 2. คำนวณคะแนนโหวตแต่ละห้อง
+                    const voteCounts = {};
+                    Object.keys(dayVotes).forEach(pid => {
+                        const targetRoom = dayVotes[pid].target;
+                        voteCounts[targetRoom] = (voteCounts[targetRoom] || 0) + 1;
+                    });
 
-                            let highestRoom = null;
-                            let maxVotes = 0;
-                            Object.keys(voteCounts).forEach(room => {
-                                if (voteCounts[room] > maxVotes) {
-                                    maxVotes = voteCounts[room];
-                                    highestRoom = room;
-                                }
-                            });
+                    let highestRoom = null;
+                    let maxVotes = 0;
+                    Object.keys(voteCounts).forEach(room => {
+                        if (voteCounts[room] > maxVotes) {
+                            maxVotes = voteCounts[room];
+                            highestRoom = room;
+                        }
+                    });
 
-                            let executionMsg = "";
-                            if (highestRoom) {
-                                closedRooms[highestRoom] = true;
-                                
-                                const targetPlayerId = Object.keys(players).find(pid => players[pid].isAlive && players[pid].currentRoom === highestRoom);
-                                
-                                if (targetPlayerId) {
-                                    roomLabels[highestRoom] = "ประชาทัณฑ์";
-                                    players[targetPlayerId].isAlive = false;
-                                    const executedPlayer = players[targetPlayerId];
-                                    executionMsg = `ผลโหวตสูงสุดตกที่ห้อง ${highestRoom} (ประชาทัณฑ์)! ถูกโหวตประหารชีวิตผู้เล่น "${executedPlayer.name}" (${ROLE_NAMES_TH[executedPlayer.role] || executedPlayer.role})`;
+                    let executionMsg = "";
+                    const requiredVotes = Math.floor(totalAlive / 2) + 1; // เกินครึ่ง (เสียงส่วนใหญ่)
 
-                                    if (executedPlayer.role === "Drunk") {
-                                        data.status = "ENDED";
-                                        data.winner = "DRUNK";
-                                        data.endMessage = `🍻 ผู้เล่น "${executedPlayer.name}" คือคนเมาที่ถูกโหวตประหารสำเร็จ! คนเมา ชนะเกมนี้คนเดียวเด็ดขาด!`;
-                                        data.morningNews = executionMsg + " | " + data.endMessage;
-                                        data.players = players;
-                                        data.closedRooms = closedRooms;
-                                        data.roomLabels = roomLabels;
-                                        return data;
-                                    }
-                                } else {
-                                    roomLabels[highestRoom] = "ห้องว่าง";
-                                    executionMsg = `ผลโหวตสูงสุดตกที่ห้อง ${highestRoom} แต่ห้องนั้นเป็นห้องว่าง ไม่มีใครพักอยู่ ไม่มีใครถูกประหาร`;
-                                }
-                            } else {
-                                executionMsg = `ไม่มีการโหวตใดๆ เกิดขึ้นในวันนี้`;
-                            }
+                    // 3. ตรวจสอบว่าเสียงโหวตสูงสุดถึงเกณฑ์เกินครึ่งหรือไม่
+                    if (highestRoom && maxVotes >= requiredVotes) {
+                        closedRooms[highestRoom] = true;
+                        
+                        const targetPlayerId = Object.keys(players).find(pid => players[pid].isAlive && players[pid].currentRoom === highestRoom);
+                        
+                        if (targetPlayerId) {
+                            roomLabels[highestRoom] = "ประชาทัณฑ์";
+                            players[targetPlayerId].isAlive = false;
+                            const executedPlayer = players[targetPlayerId];
+                            executionMsg = `ผลโหวตสูงสุดตกที่ห้อง ${highestRoom} (${maxVotes}/${totalAlive} เสียง) ผ่านเกณฑ์เกินครึ่ง! โหวตประหารชีวิตผู้เล่น "${executedPlayer.name}" (${ROLE_NAMES_TH[executedPlayer.role] || executedPlayer.role})`;
 
-                            const currentNight = data.nightCount || 1;
-                            if (currentNight >= 3) {
+                            if (executedPlayer.role === "Drunk") {
                                 data.status = "ENDED";
-                                data.winner = "KILLER";
-                                data.endMessage = `⌛ ครบกำหนด 3 เทิร์นแล้ว! ฝั่งคนดีหาตัวคนร้ายไม่พบ ➔ ฝั่งคนร้ายชนะเกมนี้!`;
-                            } else {
-                                data.morningNews = executionMsg;
-                                data.status = "DAY_RESOLVED";
+                                data.winner = "DRUNK";
+                                data.endMessage = `🍻 ผู้เล่น "${executedPlayer.name}" คือคนเมาที่ถูกโหวตประหารสำเร็จ! คนเมา ชนะเกมนี้คนเดียวเด็ดขาด!`;
+                                data.morningNews = executionMsg + " | " + data.endMessage;
+                                data.players = players;
+                                data.closedRooms = closedRooms;
+                                data.roomLabels = roomLabels;
+                                return data;
                             }
-
-                            data.players = players;
-                            data.closedRooms = closedRooms;
-                            data.roomLabels = roomLabels;
-                            return data;
-                        });
-                    } catch (error) {
-                        console.error(error);
+                        } else {
+                            roomLabels[highestRoom] = "ห้องว่าง";
+                            executionMsg = `ผลโหวตสูงสุดตกที่ห้อง ${highestRoom} (${maxVotes} เสียง) แต่ห้องนั้นเป็นห้องว่าง ไม่มีใครถูกประหาร`;
+                        }
+                    } else {
+                        // กรณีเสียงไม่ถึง หรือไม่มีคนโหวต
+                        if (highestRoom) {
+                            executionMsg = `เสียงโหวตสูงสุดอยู่ที่ห้อง ${highestRoom} (${maxVotes} เสียง) แต่ไม่ถึงเกณฑ์เสียงส่วนใหญ่ (ต้องมากกว่าครึ่ง หรืออย่างน้อย ${requiredVotes} เสียงจากผู้รอดชีวิต ${totalAlive} คน) ➔ วันนี้ไม่มีใครถูกประหารชีวิต`;
+                        } else {
+                            executionMsg = `ไม่มีการโหวตใดๆ เกิดขึ้นในวันนี้ ไม่มีใครถูกประหาร`;
+                        }
                     }
-                }
-            });
-        };
+
+                    const currentNight = data.nightCount || 1;
+                    if (currentNight >= 3) {
+                        data.status = "ENDED";
+                        data.winner = "KILLER";
+                        data.endMessage = `⌛ ครบกำหนด 3 เทิร์นแล้ว! ฝั่งคนดีหาตัวคนร้ายไม่พบ ➔ ฝั่งคนร้ายชนะเกมนี้!`;
+                    } else {
+                        data.morningNews = executionMsg;
+                        data.status = "DAY"; // คงสถานะ DAY ไว้เพื่อให้กระดานข่าวยังโชว์อยู่
+                    }
+
+                    data.players = players;
+                    data.closedRooms = closedRooms;
+                    data.roomLabels = roomLabels;
+                    return data;
+                });
+            } catch (error) {
+                console.error(error);
+            }
+        }
+    });
+};
 
         nextNightBtn.onclick = async () => {
             try {
                 await runTransaction(roomRef, (data) => {
-                    if (!data || data.status !== "DAY_RESOLVED") return;
+                    if (!data || data.status !== "DAY") return;
                     data.nightCount = (data.nightCount || 1) + 1;
                     data.status = "NIGHT";
                     data.dayVotes = null;
