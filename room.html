@@ -159,7 +159,6 @@
                 <label class="block text-xs font-medium text-slate-400 mb-1">บทบาทที่ได้รับ</label>
                 <select id="setupRoleSelect" 
                     class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-3 text-white text-xs focus:outline-none focus:border-amber-400">
-                    <option value="Drunk">🍻 คนเมา (Drunk - โดนโหวตออกชนะคนเดียว)</option>
                     <option value="Killer">🗡️ คนร้าย (Killer)</option>
                     <option value="Accomplice">🤝 ผู้ช่วยคนร้าย (Accomplice)</option>
                     <option value="Locksmith">🔑 ช่างทำกุญแจ (Locksmith)</option>
@@ -167,6 +166,8 @@
                     <option value="GlassCleaner">🪟 ช่างเช็ดกระจก (Column Scanner)</option>
                     <option value="Detective">🔍 นักสืบ (Player Tracker)</option>
                     <option value="Witness">👁️ พยาน (Higher/Lower Sensor)</option>
+                    <option value="Tourist">🎒 นักท่องเที่ยว (Tourist - ชาวบ้านธรรมดา)</option>
+                    <option value="Drunk">🍻 คนเมา (Drunk - โดนโหวตออกชนะคนเดียว)</option>
                 </select>
             </div>
 
@@ -196,7 +197,8 @@
             GlassCleaner: "🪟 ช่างเช็ดกระจก (Column Scanner)",
             Detective: "🔍 นักสืบ (Player Tracker)",
             Witness: "👁️ พยาน (Higher/Lower Sensor)",
-            Drunk: "🍻 คนเมา (Drunk)"
+            Drunk: "🍻 คนเมา (Drunk)",
+            Tourist: "🎒 นักท่องเที่ยว (Tourist)"
         };
 
         const ROLE_DESCRIPTIONS = {
@@ -207,7 +209,8 @@
             GlassCleaner: "เลือก 1 คอลัมน์ (01, 02, 03) เพื่อนับจำนวนคนที่ยังมีชีวิตในแนวตั้งทั้งหมด (รู้ผลทันที)",
             Detective: "เลือกผู้เล่น 1 คน เพื่อสืบว่าคืนนี้เขาพักอยู่ที่ชั้นไหน (รู้ผลทันที)",
             Witness: "เลือก 1 ชั้นอ้างอิง เพื่อดูว่าชั้นที่คนร้ายพักอยู่สูงหรือต่ำกว่าชั้นนี้",
-            Drunk: "ทำตัวให้คนสงสัยและโหวตคุณออกตอนกลางวัน เพื่อชนะคนเดียว!"
+            Drunk: "ทำตัวให้คนสงสัยและโหวตคุณออกตอนกลางวัน เพื่อชนะคนเดียว!",
+            Tourist: "คุณคือนักท่องเที่ยวผู้บริสุทธิ์ ไม่มีพลังพิเศษ เอาชีวิตรอดและช่วยกันโหวตหาคนร้าย"
         };
         
         const urlParams = new URLSearchParams(window.location.search);
@@ -399,7 +402,6 @@
             let resultMessage = "";
 
             if (currentStatus === "NIGHT") {
-                // แก้ไขการย้ายห้องของคนเมา
                 if (me.role === "Drunk" && isDrunkMovingRoom && payload.type === "DRUNK_MOVE") {
                     try {
                         await update(ref(db, `rooms/${roomCode}/players/${playerId}`), {
@@ -455,7 +457,6 @@
                 }
                 else if (me.role === "Witness" && payload.type === "FLOOR") {
                     const refFloor = parseInt(payload.target);
-                    // หาว่าคนร้ายอยู่ชั้นไหนจริง ๆ
                     let killerRealFloor = null;
                     Object.keys(players).forEach(pid => {
                         if (players[pid].role === "Killer" && players[pid].currentRoom) {
@@ -474,7 +475,7 @@
                     }
                 }
                 else {
-                    resultMessage = `💤 นอนพักห้องเดิมเรียบร้อย`;
+                    resultMessage = `💤 เข้านอนเรียบร้อย`;
                 }
 
                 if (!me.clues) me.clues = [];
@@ -545,7 +546,6 @@
                 const nightNum = data.nightCount || 1;
                 const killerRealFloor = (killerPlayerId && players[killerPlayerId].currentRoom) ? parseInt(players[killerPlayerId].currentRoom[0]) : null;
 
-                // ตรวจสอบเงื่อนไขพยาน: ถ้าเฝ้าถูกชั้นจริงถึงจะได้เบาะแส
                 aliveIds.forEach(id => {
                     const p = players[id];
                     const act = nightActions[id];
@@ -568,7 +568,11 @@
                     }
                 });
 
-                const requiredActionIds = aliveIds.filter(id => players[id].role !== "Drunk");
+                // นักท่องเที่ยว, แม่บ้าน, ช่างเช็ดกระจก, นักสืบ, พยาน, คนเมา ถือว่าไม่ต้องบังคับแอคชั่นพิเศษ หรือแค่กดเข้านอน
+                const requiredActionIds = aliveIds.filter(id => {
+                    const r = players[id].role;
+                    return r === "Killer" || r === "Locksmith" || r === "Accomplice";
+                });
                 const allSubmitted = requiredActionIds.every(id => nightActions[id] !== undefined);
                 if (!allSubmitted) return data;
 
@@ -630,7 +634,7 @@
             if (data.status === "NIGHT") {
                 const nightActions = data.nightActions || {};
                 const myAction = nightActions[playerId];
-                const submittedCount = aliveIds.filter(id => nightActions[id] || players[id].role === "Drunk").length;
+                const submittedCount = aliveIds.filter(id => nightActions[id] || players[id].role === "Drunk" || players[id].role === "Tourist" || players[id].role === "Housekeeper" || players[id].role === "GlassCleaner" || players[id].role === "Detective").length;
 
                 actionTitle.textContent = `🌙 ภารกิจคืนที่ ${data.nightCount || 1}`;
                 actionProgress.textContent = `ดำเนินการแล้ว ${submittedCount}/${aliveIds.length} คน`;
