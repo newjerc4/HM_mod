@@ -120,9 +120,14 @@
                 <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
                     <span>👥</span> ผู้เล่นในห้อง
                 </h3>
-                <span id="playerCount" class="text-xs font-semibold bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full border border-slate-700">
-                    ผู้เล่น 0 คน
-                </span>
+                <div class="flex items-center gap-2">
+                    <span id="survivalSummary" class="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                        ผู้รอดชีวิต: -
+                    </span>
+                    <span id="playerCount" class="text-xs font-semibold bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full border border-slate-700">
+                        0 คน
+                    </span>
+                </div>
             </div>
 
             <div id="playerList" class="space-y-2 max-h-40 overflow-y-auto pr-1"></div>
@@ -289,6 +294,7 @@
         const mapStatusHint = document.getElementById("mapStatusHint");
         const playerList = document.getElementById("playerList");
         const playerCount = document.getElementById("playerCount");
+        const survivalSummary = document.getElementById("survivalSummary");
 
         const confirmModal = document.getElementById("confirmModal");
         const confirmModalIcon = document.getElementById("confirmModalIcon");
@@ -509,7 +515,7 @@
                         const p = players[pid];
                         return p.isAlive && p.currentRoom && p.currentRoom.endsWith(targetCol);
                     }).length;
-                    resultMessage = `🪟 ผลสแกนคอลัมน์ ${targetCol}: พบผู้เข้าพักรวม ${count} คนในคอลัมน์นี้`;
+                    resultMessage = `🪟 ผลสแกนคอลัมน์ ${targetCol}: พบผู้เข้าพักรวม ${count} คนในแนวตั้งนี้ทุกชั้น`;
                 }
                 else if ((me.role === "Detective" || me.role === "Accomplice") && payload.type === "PLAYER") {
                     const targetPlayer = players[payload.target];
@@ -541,7 +547,6 @@
 
                     if (killerCrimeFloor !== null) {
                         if (killerCrimeFloor === refFloor) {
-                            // เฝ้าถูกชั้น! เปรียบเทียบชั้นที่คนร้ายพักอาศัยอยู่
                             let relation = "";
                             if (killerHomeFloor > refFloor) {
                                 relation = "สูงกว่า";
@@ -562,13 +567,8 @@
                     resultMessage = `💤 เข้านอนเรียบร้อย`;
                 }
 
-                if (me.role !== "Witness") {
-                    if (!me.clues) me.clues = [];
-                    me.clues.push(`คืนที่ ${nightNum}: ${resultMessage}`);
-                } else {
-                    if (!me.clues) me.clues = [];
-                    me.clues.push(`คืนที่ ${nightNum}: ${resultMessage}`);
-                }
+                if (!me.clues) me.clues = [];
+                me.clues.push(`คืนที่ ${nightNum}: ${resultMessage}`);
 
                 try {
                     await set(ref(db, `rooms/${roomCode}/nightActions/${playerId}`), payload);
@@ -663,7 +663,7 @@
                         } else {
                             closedRooms[killerTargetRoom] = true;
                             roomLabels[killerTargetRoom] = "ห้องว่าง";
-                            newsMessage = `เมื่อคืนมีเสียงดังผิดปกติที่ห้อง ${killerTargetRoom} แต่โชคดี !! ห้องนั้นไม่มีคนอยู่ ➔ (ห้องนี้คือห้องว่าง)`;
+                            newsMessage = `เมื่อคืนมีเสียงดังผิดปกติที่ห้อง ${killerTargetRoom} แต่ห้องนั้นไม่มีคนอยู่ ➔ (ห้องนี้คือห้องว่าง)`;
                         }
                     }
                 } else {
@@ -1125,7 +1125,9 @@
                 privateClueBox.classList.add("hidden");
             }
 
-            playerCount.textContent = `ผู้เล่น ${playerIds.length} / ${data.maxPlayers || '-'} คน`;
+            const aliveCount = playerIds.filter(id => players[id].isAlive).length;
+            survivalSummary.textContent = `ผู้รอดชีวิต: ${aliveCount} / ${playerIds.length} คน`;
+            playerCount.textContent = `${playerIds.length} / ${data.maxPlayers || '-'} คน`;
             playerList.innerHTML = "";
 
             playerIds.forEach((id) => {
