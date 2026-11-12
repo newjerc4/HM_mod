@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hotel Murder - ห้องเกม</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- เพิ่ม SweetAlert2 สำหรับแจ้งเตือนบน iOS / มือถือทุกค่าย -->
+    <!-- SweetAlert2 สำหรับแจ้งเตือนบน iOS / มือถือทุกค่าย -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         body { font-family: sans-serif; }
@@ -156,7 +156,6 @@
                 <label class="block text-xs font-medium text-slate-400 mb-1">บทบาทที่ได้รับ</label>
                 <select id="setupRoleSelect" 
                     class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-3 text-white text-xs focus:outline-none focus:border-amber-400">
-                    <option value="Innocent">👤 ชาวบ้าน (Innocent)</option>
                     <option value="Killer">🗡️ คนร้าย (Killer)</option>
                     <option value="Accomplice">🤝 ผู้ช่วยคนร้าย (Accomplice)</option>
                     <option value="Locksmith">🔑 ช่างทำกุญแจ (Locksmith)</option>
@@ -193,7 +192,6 @@
             GlassCleaner: "🪟 ช่างเช็ดกระจก (Column Scanner)",
             Detective: "🔍 นักสืบ (Player Tracker)",
             Witness: "👁️ พยาน (Higher/Lower Sensor)",
-            Innocent: "👤 ชาวบ้าน (Innocent)"
         };
 
         const ROLE_DESCRIPTIONS = {
@@ -201,10 +199,9 @@
             Accomplice: "เลือกผู้เล่น 1 คน เพื่อสืบว่าคืนนี้เขาพักอยู่ที่ชั้นไหน (รู้ผลทันที)",
             Locksmith: "เลือก 1 ห้องบนแผนผังเพื่อล็อกประตู ป้องกันคนร้ายบุกคืนนี้",
             Housekeeper: "เลือก 1 ชั้น เพื่อตรวจสอบว่ามีผู้เล่นพักอยู่ในชั้นนั้นกี่คน (รู้ผลทันที)",
-            GlassCleaner: "เลือก 1 คอลัมน์ (01, 02, 03) เพื่อนับจำนวนคนที่ยังมีชีวิตในแนวตั้งทั้งหมด (รู้ผลทันที)",
+            GlassCleaner: "เลือก 1 คอลัมน์ (1, 2, 3) เพื่อนับจำนวนคนที่ยังมีชีวิตในแนวตั้งทั้งหมด (รู้ผลทันที)",
             Detective: "เลือกผู้เล่น 1 คน เพื่อสืบว่าคืนนี้เขาพักอยู่ที่ชั้นไหน (รู้ผลทันที)",
-            Witness: "เลือก 1 ชั้นอ้างอิง เพื่อดูว่าชั้นที่คนร้ายลงมืออยู่สูงหรือต่ำกว่าชั้นนี้",
-            Innocent: "คุณไม่มีความสามารถพิเศษในตอนกลางคืน กดปุ่มเข้านอนเพื่อรอเช้าวันใหม่"
+            Witness: "เลือก 1 ชั้นอ้างอิง เพื่อดูว่าชั้นที่คนร้ายลงมืออยู่สูงหรือต่ำกว่าชั้นนี้ (รู้ผลทันทีเมื่อคนร้ายเลือกแล้ว)",
         };
         
         const urlParams = new URLSearchParams(window.location.search);
@@ -333,7 +330,6 @@
             pendingActionPayload = null;
         };
 
-        // ใช้ Swal แทนผลการตรวจสืบสวน (รองรับ iOS เต็มรูปแบบ)
         window.openResultModal = function(text) {
             Swal.fire({
                 icon: 'info',
@@ -451,7 +447,26 @@
                     }
                 }
                 else if (me.role === "Witness" && payload.type === "FLOOR") {
-                    resultMessage = `👁️ บันทึกชั้นอ้างอิง ${payload.target} เรียบร้อย (รอสรุปเป้าหมายคนร้ายตอนเช้า)`;
+                    const refFloor = parseInt(payload.target);
+                    // ตรวจสอบว่าคนร้ายเลือกห้องหรือยัง
+                    const nightActions = currentRoomData.nightActions || {};
+                    let killerTargetRoom = null;
+                    Object.keys(players).forEach(pid => {
+                        if (players[pid].role === "Killer" && nightActions[pid]?.target) {
+                            killerTargetRoom = nightActions[pid].target;
+                        }
+                    });
+
+                    if (killerTargetRoom) {
+                        const killerFloor = parseInt(killerTargetRoom[0]);
+                        let hint = "";
+                        if (killerFloor > refFloor) hint = `สูงกว่าชั้น ${refFloor} ⬆️`;
+                        else if (killerFloor < refFloor) hint = `ต่ำกว่าชั้น ${refFloor} ⬇️`;
+                        else hint = `อยู่ชั้น ${refFloor} พอดี! 🎯`;
+                        resultMessage = `👁️ ผลตรวจพยาน (ชั้นอ้างอิง ${refFloor}): เป้าหมายที่คนร้ายเลือก ${hint}`;
+                    } else {
+                        resultMessage = `👁️ บันทึกชั้นอ้างอิง ${refFloor} เรียบร้อย (คนร้ายยังไม่ลงมือ จะแสดงผลทันทีเมื่อคนร้ายเลือกห้อง)`;
+                    }
                 }
                 else {
                     resultMessage = `✅ บันทึกคำสั่งสำเร็จ (${payload.label})`;
@@ -519,16 +534,7 @@
                 const nightActions = data.nightActions || {};
                 const aliveIds = Object.keys(players).filter(id => players[id].isAlive);
 
-                const allSubmitted = aliveIds.every(id => nightActions[id] !== undefined);
-                if (!allSubmitted) return;
-
-                let lockedRoom = null;
-                aliveIds.forEach(id => {
-                    if (players[id].role === "Locksmith" && nightActions[id]?.target) {
-                        lockedRoom = nightActions[id].target;
-                    }
-                });
-
+                // หากพยานเลือกช่องก่อนคนร้าย เมื่อคนร้ายกดเลือกห้องทีหลัง ให้คำนวณอัปเดตผลให้พยานทันที
                 let killerTargetRoom = null;
                 aliveIds.forEach(id => {
                     if (players[id].role === "Killer" && nightActions[id]?.target) {
@@ -542,13 +548,28 @@
                     const act = nightActions[id];
                     if (p.role === "Witness" && act?.target && killerTargetRoom) {
                         const refFloor = parseInt(act.target);
-                        const killerTargetFloor = parseInt(killerTargetRoom[0]);
+                        const killerFloor = parseInt(killerTargetRoom[0]);
                         let hint = "";
-                        if (killerTargetFloor > refFloor) hint = `สูงกว่าชั้น ${refFloor} ⬆️`;
-                        else if (killerTargetFloor < refFloor) hint = `ต่ำกว่าชั้น ${refFloor} ⬇️`;
+                        if (killerFloor > refFloor) hint = `สูงกว่าชั้น ${refFloor} ⬆️`;
+                        else if (killerFloor < refFloor) hint = `ต่ำกว่าชั้น ${refFloor} ⬇️`;
                         else hint = `อยู่ชั้น ${refFloor} พอดี! 🎯`;
+                        
+                        const clueText = `คืนที่ ${nightNum}: ผลตรวจพยาน (ชั้นอ้างอิง ${refFloor}): เป้าหมายที่คนร้ายเลือก ${hint}`;
                         if (!p.clues) p.clues = [];
-                        p.clues.push(`คืนที่ ${nightNum}: เป้าหมายที่คนร้ายเลือก ${hint}`);
+                        // ป้องกันการบันทึกข้อความซ้ำซ้อนถ้าบันทึกไปแล้ว
+                        if (!p.clues.includes(clueText)) {
+                            p.clues.push(clueText);
+                        }
+                    }
+                });
+
+                const allSubmitted = aliveIds.every(id => nightActions[id] !== undefined);
+                if (!allSubmitted) return data;
+
+                let lockedRoom = null;
+                aliveIds.forEach(id => {
+                    if (players[id].role === "Locksmith" && nightActions[id]?.target) {
+                        lockedRoom = nightActions[id].target;
                     }
                 });
 
@@ -622,10 +643,14 @@
                         btn.className = "bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-200 font-bold py-2 rounded-xl text-xs border border-slate-700 transition";
                         btn.textContent = `ชั้น ${f}`;
                         btn.onclick = () => {
+                            const actionTitleText = role === "Witness" ? "ยืนยันการเป็นพยาน" : "ยืนยันการตรวจสอบ";
+                            const actionDescText = role === "Witness" 
+                                ? `ยืนยันเฝ้าสังเกตการณ์ <b>ชั้นที่ ${f}</b> ใช่หรือไม่? (รู้ผลทันทีเมื่อคนร้ายเลือกห้อง)` 
+                                : `ยืนยันตรวจสอบ <b>ชั้นที่ ${f}</b> ใช่หรือไม่? (รู้ผลทันที)`;
                             openConfirmModal(
-                                "ยืนยันการตรวจสอบ",
-                                `ยืนยันตรวจสอบ <b>ชั้นที่ ${f}</b> ใช่หรือไม่? (รู้ผลทันที)`,
-                                "🔍",
+                                actionTitleText,
+                                actionDescText,
+                                role === "Witness" ? "👁️" : "🔍",
                                 { type: "FLOOR", target: f, label: `ชั้น ${f}` }
                             );
                         };
