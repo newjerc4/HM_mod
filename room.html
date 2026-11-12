@@ -481,6 +481,8 @@
                             background: '#0f172a',
                             color: '#f8fafc'
                         });
+
+                        await checkAndResolveNight();
                         return;
                     } catch (error) {
                         console.error(error);
@@ -584,9 +586,13 @@
                 const nightActions = data.nightActions || {};
                 const aliveIds = Object.keys(players).filter(id => players[id].isAlive);
 
-                // เช็คว่าทุกคนที่ยังมีชีวิตอยู่ส่ง Action ครบหมดหรือยัง (ไม่จำกัดเฉพาะบางบทบาท)
+                const isDrunkActiveAndMissingAction = aliveIds.some(id => players[id].role === "Drunk" && !nightActions[id]);
+                if (isDrunkActiveAndMissingAction) {
+                    return data; 
+                }
+
                 const allSubmitted = aliveIds.every(id => nightActions[id] !== undefined);
-                if (!allSubmitted) return data; // ถ้ายังไม่ครบทุกคนให้นอนรอต่อไป
+                if (!allSubmitted) return data; 
 
                 let killerTargetRoom = null;
                 let killerPlayerId = null;
@@ -602,7 +608,6 @@
                 const nightNum = data.nightCount || 1;
                 const killerRealFloor = (killerPlayerId && players[killerPlayerId].currentRoom) ? parseInt(players[killerPlayerId].currentRoom[0]) : null;
 
-                // เมื่อทุกคนทำแอคชั่นครบและคนร้ายลงมือแล้ว คำนวณผลของพยาน
                 aliveIds.forEach(id => {
                     const p = players[id];
                     const act = nightActions[id];
@@ -707,6 +712,7 @@
                         cancelBtn.onclick = () => {
                             isDrunkMovingRoom = false;
                             renderRoleActionPanel(data, me);
+                            renderHotelMap(data, me); // เรนเดอร์แผนผังใหม่ตอนยกเลิก
                         };
                         customActionControls.appendChild(cancelBtn);
                         return;
@@ -724,6 +730,7 @@
                     moveBtn.onclick = () => {
                         isDrunkMovingRoom = true;
                         renderRoleActionPanel(data, me);
+                        renderHotelMap(data, me); // [แก้จุดสำคัญ] สั่งเรนเดอร์แผนผังใหม่เพื่อให้ห้องกดเลือกได้ทันที
                     };
                     customActionControls.appendChild(moveBtn);
 
@@ -889,7 +896,7 @@
                         } else if (canClickMapInCrimeScene) {
                             isThisRoomInteractive = true;
                         } else if (canClickMapInDrunkMove) {
-                            isThisRoomInteractive = true;
+                            isThisRoomInteractive = true; // [จุดที่แก้ไข] อนุญาตให้คลิกเลือกห้องได้เมื่อคนเมาอยู่ในโหมดเปลี่ยนห้อง
                         } else if (canClickMapInNight) {
                             isThisRoomInteractive = true;
                         } else if (canClickMapInDay) {
