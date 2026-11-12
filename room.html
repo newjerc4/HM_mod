@@ -31,7 +31,7 @@
         </div>
 
         <!-- ประกาศข่าวประจำวัน -->
-        <div id="morningNewsBox" class="hidden bg-rose-950/40 border border-rose-500/40 p-4 rounded-2xl space-y-1 shadow-xl">
+        <div id="morningNewsBox" class="hidden bg-rose-950/80 border border-rose-500/40 p-4 rounded-2xl space-y-1 shadow-xl">
             <h3 class="text-sm font-bold text-rose-400 flex items-center gap-2">
                 <span>📰</span> สรุปเหตุการณ์เมื่อคืน (ข่าวด่วนประจำเช้านี้)
             </h3>
@@ -1007,12 +1007,12 @@
             
             // เปลี่ยนสีพื้นหลังหน้าจอตามเฟส (ถ้าเป็น DAY จะเปลี่ยนเป็นสีนวลๆ สไตล์มินิมอล)
             if (currentStatus === "DAY") {
-                pageBody.className = "bg-stone-100 text-slate-800 min-h-screen p-4 pb-24 transition-colors duration-500";
+                pageBody.className = "bg-slate-900 text-slate-100 min-h-screen p-4 pb-24 transition-colors duration-500";
             } else {
                 pageBody.className = "bg-slate-950 text-slate-100 min-h-screen p-4 pb-24 transition-colors duration-500";
             }
 
-            nightCounter.textContent = (currentStatus === "WAITING" || currentStatus === "SETUP" || currentStatus === "WAITING_CRIME_SCENE" || currentStatus === "SETUP_CRIME_SCENE") ? "ห้องเตรียมพร้อม" : `คืนที่ ${data.nightCount || 1}/3`;
+            nightCounter.textContent = (currentStatus === "WAITING" || currentStatus === "SETUP" || currentStatus === "WAITING_CRIME_SCENE" || currentStatus === "SETUP_CRIME_SCENE") ? "ห้องเตรียมพร้อม" : `เทิร์นที่ ${data.nightCount || 1}/3`;
 
             if (currentStatus === "ENDED") {
                 gameStatus.textContent = "🏁 จบเกมแล้ว";
