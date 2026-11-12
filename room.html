@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hotel Murder - ห้องเกม</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- SweetAlert2 สำหรับแจ้งเตือนบน iOS / มือถือทุกค่าย -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         body { font-family: sans-serif; }
@@ -160,6 +159,7 @@
                 <label class="block text-xs font-medium text-slate-400 mb-1">บทบาทที่ได้รับ</label>
                 <select id="setupRoleSelect" 
                     class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-3 text-white text-xs focus:outline-none focus:border-amber-400">
+                    <option value="Drunk">🍻 คนเมา (Drunk - โดนโหวตออกชนะคนเดียว)</option>
                     <option value="Killer">🗡️ คนร้าย (Killer)</option>
                     <option value="Accomplice">🤝 ผู้ช่วยคนร้าย (Accomplice)</option>
                     <option value="Locksmith">🔑 ช่างทำกุญแจ (Locksmith)</option>
@@ -167,7 +167,6 @@
                     <option value="GlassCleaner">🪟 ช่างเช็ดกระจก (Column Scanner)</option>
                     <option value="Detective">🔍 นักสืบ (Player Tracker)</option>
                     <option value="Witness">👁️ พยาน (Higher/Lower Sensor)</option>
-                    <option value="Drunk">🍻 คนเมา (Drunk)</option>
                 </select>
             </div>
 
@@ -294,7 +293,7 @@
 
         let currentRoomData = null;
         let pendingActionPayload = null;
-        let isDrunkMovingRoom = false; // ตัวแปรเช็คว่าคนเมาอยู่ระหว่างเลือกย้ายห้องไหม
+        let isDrunkMovingRoom = false;
 
         function getMaxActiveFloor(maxPlayers) {
             if (maxPlayers === 6) return 6;
@@ -400,7 +399,6 @@
             let resultMessage = "";
 
             if (currentStatus === "NIGHT") {
-                // กรณีคนเมาเลือกย้ายห้องเสร็จแล้ว
                 if (me.role === "Drunk" && isDrunkMovingRoom && payload.type === "DRUNK_MOVE") {
                     try {
                         await update(ref(db, `rooms/${roomCode}/players/${playerId}`), {
@@ -420,7 +418,13 @@
                     }
                 }
 
-                if (me.role === "Housekeeper" && payload.type === "FLOOR") {
+                if (me.role === "Killer") {
+                    resultMessage = `เลือกลงมือที่ห้อง ${payload.target}`;
+                }
+                else if (me.role === "Locksmith") {
+                    resultMessage = `เลือกล็อกห้อง ${payload.target}`;
+                }
+                else if (me.role === "Housekeeper" && payload.type === "FLOOR") {
                     const targetFloor = parseInt(payload.target);
                     const count = Object.keys(players).filter(pid => {
                         const p = players[pid];
@@ -459,10 +463,10 @@
                     if (killerTargetRoom) {
                         const killerFloor = parseInt(killerTargetRoom[0]);
                         let hint = "";
-                        if (killerFloor > refFloor) hint = `สูงกว่าชั้น ${refFloor} ⬆️`;
-                        else if (killerFloor < refFloor) hint = `ต่ำกว่าชั้น ${refFloor} ⬇️`;
-                        else hint = `อยู่ชั้น ${refFloor} พอดี! 🎯`;
-                        resultMessage = `👁️ ผลตรวจพยาน (ชั้นอ้างอิง ${refFloor}): เป้าหมายที่คนร้ายเลือก ${hint}`;
+                        if (killerFloor > refFloor) hint = `คนร้ายอยู่สูงกว่าชั้นที่คุณเฝ้าอยู่ ⬆️ (ชั้น ${killerFloor})`;
+                        else if (killerFloor < refFloor) hint = `คนร้ายอยู่ต่ำกว่าชั้นที่คุณเฝ้าอยู่ ⬇️ (ชั้น ${killerFloor})`;
+                        else hint = `คนร้ายอยู่ชั้นที่คุณเฝ้าอยู่พอดี! 🎯 (ชั้น ${killerFloor})`;
+                        resultMessage = `👁️ ผลตรวจพยาน (ชั้นอ้างอิง ${refFloor}): ${hint}`;
                     } else {
                         resultMessage = `👁️ บันทึกชั้นอ้างอิง ${refFloor} เรียบร้อย (รอคนร้ายเลือกห้อง)`;
                     }
@@ -540,11 +544,11 @@
                         const refFloor = parseInt(act.target);
                         const killerFloor = parseInt(killerTargetRoom[0]);
                         let hint = "";
-                        if (killerFloor > refFloor) hint = `สูงกว่าชั้น ${refFloor} ⬆️`;
-                        else if (killerFloor < refFloor) hint = `ต่ำกว่าชั้น ${refFloor} ⬇️`;
-                        else hint = `อยู่ชั้น ${refFloor} พอดี! 🎯`;
+                        if (killerFloor > refFloor) hint = `คนร้ายอยู่สูงกว่าชั้นที่คุณเฝ้าอยู่ ⬆️ (ชั้น ${killerFloor})`;
+                        else if (killerFloor < refFloor) hint = `คนร้ายอยู่ต่ำกว่าชั้นที่คุณเฝ้าอยู่ ⬇️ (ชั้น ${killerFloor})`;
+                        else hint = `คนร้ายอยู่ชั้นที่คุณเฝ้าอยู่พอดี! 🎯 (ชั้น ${killerFloor})`;
                         
-                        const clueText = `คืนที่ ${nightNum}: ผลตรวจพยาน (ชั้นอ้างอิง ${refFloor}): เป้าหมายที่คนร้ายเลือก ${hint}`;
+                        const clueText = `คืนที่ ${nightNum}: ผลตรวจพยาน (ชั้นอ้างอิง ${refFloor}): ${hint}`;
                         if (!p.clues) p.clues = [];
                         if (!p.clues.includes(clueText)) {
                             p.clues.push(clueText);
@@ -552,7 +556,6 @@
                     }
                 });
 
-                // ตรวจสอบว่าผู้เล่นบทบาทอื่นๆ เข้านอนหรือทำแอคชั่นครบหรือยัง (คนเมา ไม่บังคับแอคชั่นกลางคืนถ้าเลือกอยู่ห้องเดิม)
                 const requiredActionIds = aliveIds.filter(id => players[id].role !== "Drunk");
                 const allSubmitted = requiredActionIds.every(id => nightActions[id] !== undefined);
                 if (!allSubmitted) return data;
@@ -586,7 +589,6 @@
                 data.status = "DAY";
                 data.nightActions = null;
 
-                // เช็คเงื่อนไขคนร้ายชนะหลังจบกลางคืน
                 const alivePlayersList = Object.keys(players).filter(id => players[id].isAlive);
                 const killerCount = alivePlayersList.filter(id => players[id].role === "Killer" || players[id].role === "Accomplice").length;
                 const goodCount = alivePlayersList.length - killerCount;
@@ -621,7 +623,6 @@
                 actionTitle.textContent = `🌙 ภารกิจคืนที่ ${data.nightCount || 1}`;
                 actionProgress.textContent = `ดำเนินการแล้ว ${submittedCount}/${aliveIds.length} คน`;
 
-                // กรณีบทบาทคนเมา ที่สามารถเลือกย้ายห้องได้ทุกคืน
                 if (me.role === "Drunk") {
                     if (isDrunkMovingRoom) {
                         actionDesc.textContent = "🍻 โหมดเลือกห้องใหม่: กรุณาแตะเลือกหมายเลขห้องใหม่จากแผนผังโรงแรมด้านล่าง";
@@ -1021,15 +1022,6 @@
             console.error("Firebase Error:", error);
         });
 
-        function shuffle(array) {
-            const result = [...array];
-            for (let i = result.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [result[i], result[j]] = [result[j], result[i]];
-            }
-            return result;
-        }
-
         startGameBtn.onclick = async () => {
             Swal.fire({
                 title: 'เริ่มเกม?',
@@ -1055,7 +1047,6 @@
             });
         };
 
-        // Host สรุปผลโหวตประจำวัน ประหารชีวิตผู้เล่น และเช็คเงื่อนไขชนะทันที
         resolveVoteBtn.onclick = async () => {
             Swal.fire({
                 title: 'สรุปผลโหวตและประหาร?',
@@ -1076,7 +1067,6 @@
                             const dayVotes = data.dayVotes || {};
                             const players = data.players || {};
 
-                            // นับคะแนนโหวตแต่ละห้อง
                             const voteCounts = {};
                             Object.keys(dayVotes).forEach(pid => {
                                 const targetRoom = dayVotes[pid].target;
@@ -1100,7 +1090,6 @@
                                     const executedPlayer = players[executedPlayerId];
                                     executionMsg = `ผลโหวตสูงสุดตกที่ห้อง ${highestRoom}! ถูกโหวตประหารชีวิตผู้เล่น "${executedPlayer.name}" (${ROLE_NAMES_TH[executedPlayer.role] || executedPlayer.role})`;
 
-                                    // 🍻 เงื่อนไขคนเมา ชนะคนเดียวทันทีถ้าโดนโหวตออก!
                                     if (executedPlayer.role === "Drunk") {
                                         data.status = "ENDED";
                                         data.winner = "DRUNK";
@@ -1116,16 +1105,14 @@
                                 executionMsg = `ไม่มีการโหวตใดๆ เกิดขึ้นในวันนี้`;
                             }
 
-                            // เช็คว่าเล่นครบ 3 เทิร์นหรือยัง
                             const currentNight = data.nightCount || 1;
                             if (currentNight >= 3) {
                                 data.status = "ENDED";
                                 data.winner = "TIMEOUT";
                                 data.endMessage = `⌛ ครบกำหนด 3 เทิร์นแล้ว! เกมจบลง`;
                             } else {
-                                // เปิดปุ่มให้ Host ไปคืนถัดไป
                                 data.morningNews = executionMsg;
-                                data.status = "DAY_RESOLVED"; // สถานะคั่นระหว่างรอ Host กดไปคืนถัดไป
+                                data.status = "DAY_RESOLVED";
                             }
 
                             data.players = players;
