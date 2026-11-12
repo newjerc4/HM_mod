@@ -171,7 +171,7 @@
                     <option value="Housekeeper">🧹 แม่บ้าน (Floor Scanner)</option>
                     <option value="GlassCleaner">🪟 ช่างเช็ดกระจก (Column Scanner)</option>
                     <option value="Detective">🔍 นักสืบ (Player Tracker)</option>
-                    <option value="Witness">👁️ พยาน (Higher/Lower Sensor)</option>
+                    <option value="Witness">👁️ พยาน (Floor Watcher)</option>
                 </select>
             </div>
 
@@ -200,7 +200,7 @@
             Housekeeper: "🧹 แม่บ้าน (Floor Scanner)",
             GlassCleaner: "🪟 ช่างเช็ดกระจก (Column Scanner)",
             Detective: "🔍 นักสืบ (Player Tracker)",
-            Witness: "👁️ พยาน (Higher/Lower Sensor)",
+            Witness: "👁️ พยาน (Floor Watcher)",
             Drunk: "🍻 คนเมา (Drunk)",
             Tourist: "🎒 นักท่องเที่ยว (Tourist)"
         };
@@ -212,7 +212,7 @@
             Housekeeper: "เลือก 1 ชั้น เพื่อตรวจสอบว่ามีผู้เล่นพักอยู่ในชั้นนั้นกี่คน (รู้ผลทันที)",
             GlassCleaner: "เลือก 1 คอลัมน์ (01, 02, 03) เพื่อนับจำนวนคนที่ยังมีชีวิตในแนวตั้งทั้งหมด (รู้ผลทันที)",
             Detective: "เลือกผู้เล่น 1 คน เพื่อสืบว่าคืนนี้เขาพักอยู่ที่ชั้นไหน (รู้ผลทันที)",
-            Witness: "เลือก 1 ชั้นอ้างอิง เพื่อรอดูว่าชั้นที่คนร้ายเลือกอยู่สูงหรือต่ำกว่าชั้นนี้ (ทราบผลเมื่อคนร้ายลงมือแล้ว)",
+            Witness: "เลือกเฝ้าดู 1 ชั้น หากคืนนี้คนร้ายมาลงมือที่ชั้นนี้ คุณจะรู้เบาะแสทันทีในตอนเช้า",
             Drunk: "ทำตัวให้คนสงสัยและโหวตคุณออกตอนกลางวัน เพื่อชนะคนเดียว!",
             Tourist: "คุณคือนักท่องเที่ยวผู้บริสุทธิ์ ไม่มีพลังพิเศษ เอาชีวิตรอดและช่วยกันโหวตหาคนร้าย"
         };
@@ -523,7 +523,7 @@
                 }
                 else if (me.role === "Witness" && payload.type === "FLOOR") {
                     const refFloor = parseInt(payload.target);
-                    resultMessage = `👁️ บันทึกชั้นอ้างอิง ${refFloor} เรียบร้อย รอผลสรุปตอนคนร้ายลงมือ`;
+                    resultMessage = `👁️ เลือกเฝ้าดูชั้นที่ ${refFloor} เรียบร้อย รอสรุปเหตุการณ์ตอนเช้า`;
                 }
                 else {
                     resultMessage = `💤 เข้านอนเรียบร้อย`;
@@ -606,23 +606,26 @@
                 });
 
                 const nightNum = data.nightCount || 1;
-                const killerRealFloor = (killerPlayerId && players[killerPlayerId].currentRoom) ? parseInt(players[killerPlayerId].currentRoom[0]) : null;
+                // [แก้ไขจุดสำคัญ] ดึงชั้นจาก "ห้องที่คนร้ายเลือกลงมือ" (killerTargetRoom) แทนห้องพักของคนร้าย
+                const killerTargetFloor = killerTargetRoom ? parseInt(killerTargetRoom[0]) : null;
+                const killerHomeFloor = (killerPlayerId && players[killerPlayerId].currentRoom) ? parseInt(players[killerPlayerId].currentRoom[0]) : null;
 
+                // ตรวจสอบเงื่อนไขพยาน: พยานจะรู้เบาะแสก็ต่อเมื่อ "เลือกเฝ้าตรงกับชั้นที่คนร้ายเลือกลงมือเท่านั้น"
                 aliveIds.forEach(id => {
                     const p = players[id];
                     const act = nightActions[id];
-                    if (p.role === "Witness" && act?.target && killerRealFloor !== null) {
+                    if (p.role === "Witness" && act?.target) {
                         const refFloor = parseInt(act.target);
-                        let hint = "";
-                        if (killerRealFloor === refFloor) {
-                            hint = `คนร้ายอยู่ชั้นที่คุณเฝ้าอยู่พอดี! 🎯`;
-                        } else if (killerRealFloor > refFloor) {
-                            hint = `คนร้ายอยู่สูงกว่าชั้นที่คุณเฝ้าอยู่ ⬆️`;
+                        let clueText = "";
+
+                        if (killerTargetFloor !== null && killerTargetFloor === refFloor) {
+                            // ตรงกับชั้นที่คนร้ายมาลงมือ!
+                            clueText = `คืนที่ ${nightNum}: 👁️ พบเบาะแสสำคัญ! คนร้ายบุกมาลงมือที่ชั้นที่คุณเฝ้าอยู่ (ชั้น ${refFloor}) และสืบทราบว่าคนร้ายพักอยู่ที่ชั้น ${killerHomeFloor} 🎯`;
                         } else {
-                            hint = `คนร้ายอยู่ต่ำกว่าชั้นที่คุณเฝ้าอยู่ ⬇️`;
+                            // เลือกชั้นไม่ตรงกับที่คนร้ายลงมือ จะไม่ได้ข้อมูลคนร้าย
+                            clueText = `คืนที่ ${nightNum}: 👁️ เฝ้าดูชั้นที่ ${refFloor} ตลอดทั้งคืน แต่ไม่พบความเคลื่อนไหวของคนร้ายในชั้นนี้`;
                         }
                         
-                        const clueText = `คืนที่ ${nightNum}: ผลตรวจพยาน (ชั้นอ้างอิง ${refFloor}): ${hint}`;
                         if (!p.clues) p.clues = [];
                         if (!p.clues.includes(clueText)) {
                             p.clues.push(clueText);
@@ -712,7 +715,7 @@
                         cancelBtn.onclick = () => {
                             isDrunkMovingRoom = false;
                             renderRoleActionPanel(data, me);
-                            renderHotelMap(data, me); // เรนเดอร์แผนผังใหม่ตอนยกเลิก
+                            renderHotelMap(data, me);
                         };
                         customActionControls.appendChild(cancelBtn);
                         return;
@@ -730,7 +733,7 @@
                     moveBtn.onclick = () => {
                         isDrunkMovingRoom = true;
                         renderRoleActionPanel(data, me);
-                        renderHotelMap(data, me); // [แก้จุดสำคัญ] สั่งเรนเดอร์แผนผังใหม่เพื่อให้ห้องกดเลือกได้ทันที
+                        renderHotelMap(data, me);
                     };
                     customActionControls.appendChild(moveBtn);
 
@@ -768,7 +771,8 @@
                         btn.className = "bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-200 font-bold py-2 rounded-xl text-xs border border-slate-700 transition";
                         btn.textContent = `ชั้น ${f}`;
                         btn.onclick = () => {
-                            openConfirmModal("ยืนยันตรวจสอบ", `ยืนยันตรวจสอบ <b>ชั้นที่ ${f}</b> ใช่หรือไม่?`, "🔍", { type: "FLOOR", target: f, label: `ชั้น ${f}` });
+                            const actionTitleStr = role === "Witness" ? "ยืนยันเฝ้าดูชั้น" : "ยืนยันตรวจสอบ";
+                            openConfirmModal(actionTitleStr, `ยืนยันเลือก <b>ชั้นที่ ${f}</b> ใช่หรือไม่?`, "🔍", { type: "FLOOR", target: f, label: `ชั้น ${f}` });
                         };
                         grid.appendChild(btn);
                     }
@@ -896,7 +900,7 @@
                         } else if (canClickMapInCrimeScene) {
                             isThisRoomInteractive = true;
                         } else if (canClickMapInDrunkMove) {
-                            isThisRoomInteractive = true; // [จุดที่แก้ไข] อนุญาตให้คลิกเลือกห้องได้เมื่อคนเมาอยู่ในโหมดเปลี่ยนห้อง
+                            isThisRoomInteractive = true;
                         } else if (canClickMapInNight) {
                             isThisRoomInteractive = true;
                         } else if (canClickMapInDay) {
@@ -946,7 +950,7 @@
             } else if (gameStatusState === "SETUP_CRIME_SCENE") {
                 mapStatusHint.textContent = `📍 Host กำหนดห้องพบศพ (${settingCrimeSceneCount} ห้อง)`;
                 mapStatusHint.className = "text-xs text-rose-400 bg-rose-400/10 px-2.5 py-0.5 rounded border border-rose-400/20 animate-pulse";
-            } else if (isThisRoomInteractive || canClickMapInNight || canClickMapInDay) {
+            } else if (canClickMapInNight || canClickMapInDay) {
                 mapStatusHint.textContent = `👆 แตะเลือกห้องบนแผนผัง`;
                 mapStatusHint.className = "text-xs text-emerald-400 bg-emerald-400/10 px-2.5 py-0.5 rounded border border-emerald-400/20 animate-pulse";
             } else {
