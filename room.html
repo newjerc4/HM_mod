@@ -700,4 +700,142 @@
                 privateClueBox.classList.remove("hidden");
                 privateClueList.innerHTML = "";
                 me.clues.forEach(clue => {
-                    const
+                    const p = document.createElement("p");
+                    p.textContent = `• ${clue}`;
+                    privateClueList.appendChild(p);
+                });
+            } else {
+                privateClueBox.classList.add("hidden");
+            }
+
+            playerCount.textContent = `ผู้เล่น ${playerIds.length} / ${data.maxPlayers || '-'} คน`;
+            playerList.innerHTML = "";
+
+            playerIds.forEach((id) => {
+                const player = players[id];
+                const item = document.createElement("div");
+                item.className = "bg-slate-950/60 p-2.5 rounded-xl flex justify-between items-center border border-slate-800/80 text-xs";
+
+                const playerInfo = document.createElement("span");
+                playerInfo.className = player.isAlive ? "text-slate-200" : "text-slate-500 line-through";
+                playerInfo.textContent = player.name + (player.isHost ? " 👑" : "");
+
+                const rightBox = document.createElement("div");
+                rightBox.className = "flex items-center gap-2";
+
+                if (currentStatus === "NIGHT" && player.isAlive && data.nightActions && data.nightActions[id]) {
+                    const doneBadge = document.createElement("span");
+                    doneBadge.className = "text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded";
+                    doneBadge.textContent = "พร้อมแล้ว";
+                    rightBox.appendChild(doneBadge);
+                }
+
+                const status = document.createElement("span");
+                status.textContent = player.isAlive ? "🟢" : "🔴";
+                rightBox.appendChild(status);
+
+                item.appendChild(playerInfo);
+                item.appendChild(rightBox);
+                playerList.appendChild(item);
+            });
+
+            renderRoleActionPanel(data, me);
+            renderHotelMap(data, me);
+
+        }, (error) => {
+            console.error("Firebase Error:", error);
+            alert("ไม่สามารถโหลดข้อมูลห้องได้: " + error.message);
+        });
+
+        function shuffle(array) {
+            const result = [...array];
+            for (let i = result.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [result[i], result[j]] = [result[j], result[i]];
+            }
+            return result;
+        }
+
+        startGameBtn.onclick = async () => {
+            if (!confirm("คุณต้องการเริ่มเกมและแจกบทบาททั้งหมดหรือไม่?")) return;
+
+            startGameBtn.disabled = true;
+            startGameBtn.textContent = "กำลังเริ่มเกม...";
+
+            try {
+                const result = await runTransaction(roomRef, (data) => {
+                    if (!data) return;
+                    const players = data.players || {};
+                    const playerIds = Object.keys(players);
+                    const me = players[playerId];
+
+                    if (!me || !me.isHost || data.status !== "WAITING") return;
+                    const maxPlayers = data.maxPlayers || 6;
+                    if (playerIds.length < maxPlayers) return;
+
+                    const rolesToUse = data.config && data.config.rolesToUse 
+                        ? [...data.config.rolesToUse] 
+                        : ["Killer", "Accomplice", "Locksmith", "Housekeeper", "GlassCleaner", "Detective"];
+
+                    const shuffledPlayerIds = shuffle(playerIds);
+                    const shuffledRoles = shuffle(rolesToUse);
+
+                    shuffledPlayerIds.forEach((id, index) => {
+                        if (players[id]) {
+                            players[id].role = shuffledRoles[index] || "Innocent";
+                            players[id].isAlive = true;
+                            players[id].clues = [];
+                        }
+                    });
+
+                    data.players = assignRandomRooms(players, maxPlayers);
+                    data.status = "NIGHT";
+                    data.nightCount = 1;
+                    data.nightActions = null;
+                    data.dayVotes = null;
+
+                    return data;
+                }, { applyLocally: false });
+
+                if (!result.committed) {
+                    alert("ไม่สามารถเริ่มเกมได้ (ผู้เล่นอาจยังไม่ครบตามจำนวนที่กำหนด)");
+                }
+            } catch (error) {
+                console.error(error);
+                alert("เกิดข้อผิดพลาด: " + error.message);
+            } finally {
+                startGameBtn.disabled = false;
+                startGameBtn.textContent = "เริ่มเกม (แจกบทบาท)";
+            }
+        };
+
+        nextNightBtn.onclick = async () => {
+            if (!confirm("ต้องการจบช่วงเช้าและเข้าสู่คืนถัดไป (ย้ายห้องพักใหม่) หรือไม่?")) return;
+
+            try {
+                await runTransaction(roomRef, (data) => {
+                    if (!data || data.status !== "DAY") return;
+                    const maxPlayers = data.maxPlayers || 6;
+                    data.players = assignRandomRooms(data.players || {}, maxPlayers);
+                    data.status = "NIGHT";
+                    data.nightCount = (data.nightCount || 1) + 1;
+                    data.nightActions = null;
+                    data.dayVotes = null;
+                    data.morningNews = null;
+                    return data;
+                });
+            } catch (error) {
+                console.error(error);
+                alert("เกิดข้อผิดพลาด: " + error.message);
+            }
+        };
+
+        document.getElementById("leaveRoomBtn").onclick = () => {
+            if (!confirm("ต้องการออกจากห้องหรือไม่?")) return;
+            localStorage.removeItem("hotel_murder_session");
+            window.location.href = "index.html";
+        };
+    </script>
+
+</body>
+</html>
