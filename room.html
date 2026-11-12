@@ -342,7 +342,6 @@
             resultModal.classList.add("hidden");
         };
 
-        // ขั้นตอนที่ 1: บันทึก Role ที่เลือก แล้วเปิดทางให้ไปเลือกห้องบนแผนผังต่อ
         window.submitSetupRole = async function() {
             const selectedRole = document.getElementById("setupRoleSelect").value;
 
@@ -361,7 +360,6 @@
             }
         };
 
-        // ปุ่มยืนยันส่วนกลางสำหรับ Modal (รองรับทั้ง Setup เลือกห้อง และ Night/Day Action)
         window.submitConfirmedAction = async function() {
             if (!pendingActionPayload || !currentRoomData) return;
 
@@ -370,7 +368,6 @@
 
             const currentStatus = currentRoomData.status;
 
-            // ถ้าอยู่ในช่วง SETUP (เลือกห้องพัก)
             if (currentStatus === "SETUP") {
                 try {
                     await update(ref(db, `rooms/${roomCode}/players/${playerId}`), {
@@ -387,7 +384,6 @@
                 return;
             }
 
-            // ถ้าอยู่ในช่วง NIGHT หรือ DAY ปกติ
             const nightNum = currentRoomData.nightCount || 1;
             const players = currentRoomData.players || {};
             const me = players[playerId];
@@ -792,7 +788,6 @@
                 gameStatus.textContent = "⚙️ กำลังตั้งค่าตัวตน (Setup)";
                 gameStatus.className = "font-bold text-sky-400 bg-sky-500/10 px-3 py-1 rounded-full border border-sky-500/20";
                 
-                // ถ้ายังไม่ได้เลือก Role ให้เด้ง Modal ขั้นตอนที่ 1 ขึ้นมา
                 if (!me.role) {
                     setupRoleModal.classList.remove("hidden");
                     setupRoleModal.classList.add("flex");
@@ -883,7 +878,9 @@
 
                 const playerInfo = document.createElement("span");
                 playerInfo.className = player.isAlive ? "text-slate-200" : "text-slate-500 line-through";
-                playerInfo.textContent = player.name + (player.isHost ? " 👑" : "") + (player.currentRoom ? ` [ห้อง ${player.currentRoom}]` : "");
+                
+                // 🛑 ซ่อนหมายเลขห้องพักไม่ให้ผู้เล่นคนอื่นเห็น (แสดงเฉพาะชื่อและสถานะโฮสต์)[cite: 1]
+                playerInfo.textContent = player.name + (player.isHost ? " 👑" : "");
 
                 const rightBox = document.createElement("div");
                 rightBox.className = "flex items-center gap-2";
@@ -926,7 +923,6 @@
             return result;
         }
 
-        // Host กดเริ่มเกม -> เปลี่ยนสถานะเป็น SETUP เพื่อให้ทุกคนเลือก Role
         startGameBtn.onclick = async () => {
             if (!confirm("ต้องการเริ่มเกมและเปิดระบบให้ผู้เล่นเลือกบทบาทและห้องพักหรือไม่?")) return;
 
