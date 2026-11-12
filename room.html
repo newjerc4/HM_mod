@@ -302,7 +302,7 @@
         let currentRoomData = null;
         let pendingActionPayload = null;
         let isDrunkMovingRoom = false;
-        let settingCrimeSceneCount = 0; // ตัวแปรเก็บจำนวนห้องพบศพที่ต้องเลือก
+        let settingCrimeSceneCount = 0;
 
         function getMaxActiveFloor(maxPlayers) {
             if (maxPlayers === 6) return 6;
@@ -402,14 +402,16 @@
                 return;
             }
 
-            // Host เลือกห้องพบศพ (ห้องปิด) ตอนเริ่มต้นเกม
             if (currentStatus === "SETUP_CRIME_SCENE") {
                 try {
                     const closedRooms = currentRoomData.closedRooms || {};
+                    const roomLabels = currentRoomData.roomLabels || {};
+                    
                     closedRooms[payload.target] = true;
+                    roomLabels[payload.target] = "ห้องปิด";
                     settingCrimeSceneCount--;
 
-                    const updates = { closedRooms };
+                    const updates = { closedRooms, roomLabels };
                     if (settingCrimeSceneCount <= 0) {
                         updates.status = "NIGHT";
                         updates.nightCount = 1;
@@ -564,7 +566,6 @@
                 const allReady = aliveIds.every(id => players[id].isReadySetup === true && players[id].role);
 
                 if (allReady) {
-                    // เปลี่ยนสถานะไปรอ Host กำหนดห้องพบศพ (ห้องปิด) ก่อนเริ่มคืนที่ 1
                     data.status = "WAITING_CRIME_SCENE";
                 }
                 return data;
@@ -631,6 +632,7 @@
 
                 let newsMessage = "";
                 const closedRooms = data.closedRooms || {};
+                const roomLabels = data.roomLabels || {};
 
                 if (killerTargetRoom) {
                     if (killerTargetRoom === lockedRoom) {
@@ -639,11 +641,13 @@
                         const victimId = aliveIds.find(pid => players[pid].currentRoom === killerTargetRoom);
                         if (victimId) {
                             players[victimId].isAlive = false;
-                            closedRooms[killerTargetRoom] = true; // เปลี่ยนห้องเป็นห้องปิด (ห้องเกิดเหตุ)
-                            newsMessage = `เกิดเหตุฆาตกรรมขึ้นที่ห้อง ${killerTargetRoom}! พบศพของ "${players[victimId].name}" เสียชีวิตในห้องพัก ➔ (ห้องนี้กลายเป็นห้องปิด)`;
+                            closedRooms[killerTargetRoom] = true;
+                            roomLabels[killerTargetRoom] = "ผู้เคราะห์ร้าย"; // ห้องที่โดนคนร้ายสังหารสำเร็จ
+                            newsMessage = `เกิดเหตุฆาตกรรมขึ้นที่ห้อง ${killerTargetRoom}! พบศพของ "${players[victimId].name}" เสียชีวิตในห้องพัก ➔ (ห้องนี้กลายเป็นผู้เคราะห์ร้าย)`;
                         } else {
-                            closedRooms[killerTargetRoom] = true; // ห้องว่างแต่คนร้ายบุกก็กลายเป็นห้องปิด
-                            newsMessage = `เมื่อคืนมีเสียงดังผิดปกติที่ห้อง ${killerTargetRoom} แต่ห้องนั้นไม่มีใครพักอยู่ ➔ (ห้องนี้กลายเป็นห้องปิด)`;
+                            closedRooms[killerTargetRoom] = true;
+                            roomLabels[killerTargetRoom] = "ห้องว่าง"; // ห้องที่คนร้ายเลือกแต่ไม่มีคนอยู่
+                            newsMessage = `เมื่อคืนมีเสียงดังผิดปกติที่ห้อง ${killerTargetRoom} แต่ห้องนั้นไม่มีคนอยู่ ➔ (ห้องนี้คือห้องว่าง)`;
                         }
                     }
                 } else {
@@ -652,6 +656,7 @@
 
                 data.players = players;
                 data.closedRooms = closedRooms;
+                data.roomLabels = roomLabels;
                 data.morningNews = newsMessage;
                 data.status = "DAY";
                 data.nightActions = null;
@@ -821,12 +826,14 @@
             const gameStatusState = data.status || "WAITING";
             const maxActiveFloor = getMaxActiveFloor(maxPlayers);
             const closedRooms = data.closedRooms || {};
-            const highestVotedRoom = data.highestVotedRoom || null; // ห้องที่ถูกโหวตสูงสุดล่าสุด
+            const roomLabels = data.roomLabels || {};
+            const highestVotedRoom = data.highestVotedRoom || null;
 
             const role = me.role;
             const canClickMapInSetup = gameStatusState === "SETUP" && !me.isReadySetup;
             const canClickMapInCrimeScene = gameStatusState === "SETUP_CRIME_SCENE" && me.isHost;
             const canClickMapInDrunkMove = gameStatusState === "NIGHT" && role === "Drunk" && isDrunkMovingRoom;
+            
             const canClickMapInNight = gameStatusState === "NIGHT" && me.isAlive && 
                 (role === "Killer" || role === "Locksmith") &&
                 !(data.nightActions && data.nightActions[playerId]);
@@ -859,8 +866,8 @@
                         const roomBtn = document.createElement("button");
 
                         const isClosed = closedRooms[roomCodeStr] === true;
+                        const labelText = roomLabels[roomCodeStr] || "";
                         const isMyRoom = me.currentRoom === roomCodeStr && gameStatusState !== "WAITING" && gameStatusState !== "SETUP" && gameStatusState !== "WAITING_CRIME_SCENE" && gameStatusState !== "SETUP_CRIME_SCENE";
-                        const isMostVoted = highestVotedRoom === roomCodeStr;
                         
                         let btnStyle = "flex-1 py-1.5 rounded-lg text-xs font-bold transition shadow-sm text-center border ";
                         
@@ -868,8 +875,6 @@
                             btnStyle += "bg-rose-950/80 text-rose-300 border-rose-500/60 cursor-not-allowed opacity-90";
                         } else if (isMyRoom) {
                             btnStyle += "bg-indigo-950/80 text-indigo-300 border-indigo-500/60 ";
-                        } else if (isMostVoted) {
-                            btnStyle += "bg-amber-600 text-slate-950 border-amber-400 animate-pulse ";
                         } else {
                             btnStyle += "bg-slate-800 text-slate-200 border-slate-700 ";
                         }
@@ -895,7 +900,7 @@
                                 if (gameStatusState === "SETUP") {
                                     openConfirmModal("ยืนยันห้องพักของคุณ", `ยืนยันเลือกเข้าพักที่ <b>ห้อง ${roomCodeStr}</b> ใช่หรือไม่?`, "🏨", { type: "SETUP_ROOM", target: roomCodeStr, label: `ห้อง ${roomCodeStr}` });
                                 } else if (canClickMapInCrimeScene) {
-                                    openConfirmModal("กำหนดห้องปิด", `ยืนยันกำหนดให้ <b>ห้อง ${roomCodeStr}</b> เป็นห้องพบศพ (ห้องปิด) ใช่หรือไม่?`, "📍", { type: "CRIME_SCENE", target: roomCodeStr, label: `ห้อง ${roomCodeStr}` });
+                                    openConfirmModal("กำหนดห้องปิด", `ยืนยันกำหนดให้ <b>ห้อง ${roomCodeStr}</b> เป็นห้องปิด ใช่หรือไม่?`, "📍", { type: "CRIME_SCENE", target: roomCodeStr, label: `ห้อง ${roomCodeStr}` });
                                 } else if (canClickMapInDrunkMove) {
                                     openConfirmModal("ยืนยันย้ายห้อง", `ยืนยันย้ายไปพักที่ <b>ห้อง ${roomCodeStr}</b> คืนนี้ใช่หรือไม่?`, "🍻", { type: "DRUNK_MOVE", target: roomCodeStr, label: `ห้อง ${roomCodeStr}` });
                                 } else {
@@ -909,10 +914,8 @@
 
                         roomBtn.className = btnStyle;
                         
-                        if (isClosed) {
-                            roomBtn.textContent = `${roomCodeStr} (ห้องปิด)`;
-                        } else if (isMostVoted) {
-                            roomBtn.textContent = `${roomCodeStr} (โดนโหวต🔥)`;
+                        if (isClosed && labelText) {
+                            roomBtn.textContent = `${roomCodeStr} (${labelText})`;
                         } else {
                             roomBtn.textContent = isMyRoom ? `${roomCodeStr} (คุณ)` : roomCodeStr;
                         }
@@ -932,7 +935,7 @@
                 mapStatusHint.textContent = `👆 แตะเลือกห้องพักของคุณบนแผนผัง`;
                 mapStatusHint.className = "text-xs text-sky-400 bg-sky-400/10 px-2.5 py-0.5 rounded border border-sky-400/20 animate-pulse";
             } else if (gameStatusState === "SETUP_CRIME_SCENE") {
-                mapStatusHint.textContent = `📍 Host กำหนดห้องพบศพ (${settingCrimeSceneCount} ห้อง)`;
+                mapStatusHint.textContent = `📍 Host กำหนดห้องปิด (${settingCrimeSceneCount} ห้อง)`;
                 mapStatusHint.className = "text-xs text-rose-400 bg-rose-400/10 px-2.5 py-0.5 rounded border border-rose-400/20 animate-pulse";
             } else if (isThisRoomInteractive || canClickMapInNight || canClickMapInDay) {
                 mapStatusHint.textContent = `👆 แตะเลือกห้องบนแผนผัง`;
@@ -1004,7 +1007,7 @@
                     setupRoleModal.classList.add("flex");
                 }
             } else if (currentStatus === "WAITING_CRIME_SCENE" || currentStatus === "SETUP_CRIME_SCENE") {
-                gameStatus.textContent = "📍 กำหนดห้องพบศพ (Crime Scene)";
+                gameStatus.textContent = "📍 กำหนดห้องปิด (Crime Scene)";
                 gameStatus.className = "font-bold text-rose-400 bg-rose-500/10 px-3 py-1 rounded-full border border-rose-500/20";
             } else if (currentStatus === "NIGHT") {
                 gameStatus.textContent = "🌙 เฟสกลางคืน (Night)";
@@ -1166,12 +1169,11 @@
             });
         };
 
-        // Host กดกำหนดจำนวนห้องพบศพก่อนเริ่มเกม
         setupCrimeSceneBtn.onclick = async () => {
             const { value: count } = await Swal.fire({
-                title: 'กำหนดจำนวนห้องพบศพ',
+                title: 'กำหนดจำนวนห้องปิด',
                 input: 'number',
-                inputLabel: 'ระบุจำนวนห้องที่จะปิดเป็นห้องพบศพ (เช่น 1, 2, 3)',
+                inputLabel: 'ระบุจำนวนห้องที่จะปิดตอนเริ่มต้น (เช่น 1, 2, 3)',
                 inputAttributes: {
                     min: 1,
                     max: 5,
@@ -1192,7 +1194,7 @@
                     });
                     Swal.fire({
                         icon: 'info',
-                        title: 'โหมดเลือกห้องพบศพ',
+                        title: 'โหมดเลือกห้องปิด',
                         text: `กรุณาจิ้มเลือกห้องบนแผนผังโรงแรมทั้งหมด ${settingCrimeSceneCount} ห้อง เพื่อทำเป็น "ห้องปิด"`,
                         confirmButtonColor: '#f59e0b',
                         background: '#0f172a',
@@ -1224,6 +1226,7 @@
                             const dayVotes = data.dayVotes || {};
                             const players = data.players || {};
                             const closedRooms = data.closedRooms || {};
+                            const roomLabels = data.roomLabels || {};
 
                             const voteCounts = {};
                             Object.keys(dayVotes).forEach(pid => {
@@ -1240,17 +1243,16 @@
                                 }
                             });
 
-                            data.highestVotedRoom = highestRoom; // บันทึกห้องที่ถูกโหวตสูงสุดเพื่อให้ทุกคนเห็นบนแผนผัง
-
                             let executionMsg = "";
                             if (highestRoom) {
-                                closedRooms[highestRoom] = true; // ห้องที่ถูกโหวตสูงสุดจะกลายเป็นห้องปิดด้วย
+                                closedRooms[highestRoom] = true;
+                                roomLabels[highestRoom] = "ประชาทัณฑ์"; // ห้องที่โดนทุกคนรุมโหวต
                                 const executedPlayerId = Object.keys(players).find(pid => players[pid].isAlive && players[pid].currentRoom === highestRoom);
                                 
                                 if (executedPlayerId) {
                                     players[executedPlayerId].isAlive = false;
                                     const executedPlayer = players[executedPlayerId];
-                                    executionMsg = `ผลโหวตสูงสุดตกที่ห้อง ${highestRoom} (กลายเป็นห้องปิด)! ถูกโหวตประหารชีวิตผู้เล่น "${executedPlayer.name}" (${ROLE_NAMES_TH[executedPlayer.role] || executedPlayer.role})`;
+                                    executionMsg = `ผลโหวตสูงสุดตกที่ห้อง ${highestRoom} (ประชาทัณฑ์)! ถูกโหวตประหารชีวิตผู้เล่น "${executedPlayer.name}" (${ROLE_NAMES_TH[executedPlayer.role] || executedPlayer.role})`;
 
                                     if (executedPlayer.role === "Drunk") {
                                         data.status = "ENDED";
@@ -1259,10 +1261,11 @@
                                         data.morningNews = executionMsg + " | " + data.endMessage;
                                         data.players = players;
                                         data.closedRooms = closedRooms;
+                                        data.roomLabels = roomLabels;
                                         return data;
                                     }
                                 } else {
-                                    executionMsg = `ผลโหวตสูงสุดตกที่ห้อง ${highestRoom} (กลายเป็นห้องปิด) แต่ห้องนั้นไม่มีใครพักอยู่ ไม่มีใครถูกประหาร`;
+                                    executionMsg = `ผลโหวตสูงสุดตกที่ห้อง ${highestRoom} (ประชาทัณฑ์) แต่ห้องนั้นไม่มีใครพักอยู่ ไม่มีใครถูกประหาร`;
                                 }
                             } else {
                                 executionMsg = `ไม่มีการโหวตใดๆ เกิดขึ้นในวันนี้`;
@@ -1280,6 +1283,7 @@
 
                             data.players = players;
                             data.closedRooms = closedRooms;
+                            data.roomLabels = roomLabels;
                             return data;
                         });
                     } catch (error) {
