@@ -186,14 +186,13 @@
         // =========================================
         // ฟังก์ชันสร้างแผนผังโรงแรม (Dynamic Hotel Map Generator)
         // =========================================
+        function renderHotelMap(maxPlayers, gameStatusState) {// =========================================
+        // ฟังก์ชันสร้างแผนผังโรงแรม (Dynamic Hotel Map Generator)
+        // =========================================
         function renderHotelMap(maxPlayers, gameStatusState) {
             hotelMapContainer.innerHTML = "";
 
             // คำนวณจำนวนชั้นที่เปิดใช้งานตามจำนวนผู้เล่น
-            // 6 คน: ปิด 3 ชั้นบน (เหลือชั้น 1-6)
-            // 7 คน: ปิด 2 ชั้นบน (เหลือชั้น 1-7)
-            // 8 คน: ปิด 1 ชั้นบน (เหลือชั้น 1-8)
-            // 9-10 คน: เปิดครบ 9 ชั้น
             let minActiveFloor = 1;
             let maxActiveFloor = 9;
 
@@ -213,27 +212,27 @@
                 floorLabel.textContent = `ชั้น ${floor}`;
                 floorRow.appendChild(floorLabel);
 
-                // คอนเทนเนอร์ห้องทั้ง 3 ห้องประจำชั้น (01, 02, 03)
-                const roomsGroup = document.createElement("div");
-                roomsGroup.className = "flex space-x-2 flex-1 justify-end";
-
                 const isFloorClosed = floor > maxActiveFloor;
 
-                for (let roomNo = 1; roomNo <= 3; roomNo++) {
-                    const roomCodeStr = `${floor}0${roomNo}`; // เช่น 101, 102, 103
-                    const roomBtn = document.createElement("button");
+                if (isFloorClosed) {
+                    // หากชั้นนั้นถูกปิด ให้แสดงแถบสีแดงยาวพร้อมข้อความ "ปิดปรับปรุง" (ตัวหนังสือสีขาว) ทับพื้นที่ห้อง
+                    const closedBanner = document.createElement("div");
+                    closedBanner.className = "flex-1 ml-2 bg-red-600 text-white text-xs font-bold py-1.5 rounded-lg text-center tracking-wider shadow-inner";
+                    closedBanner.textContent = "ปิดปรับปรุง";
+                    floorRow.appendChild(closedBanner);
+                } else {
+                    // ชั้นที่เปิดใช้งานปกติ แสดงปุ่มห้องทั้ง 3 ห้อง (01, 02, 03)
+                    const roomsGroup = document.createElement("div");
+                    roomsGroup.className = "flex space-x-2 flex-1 justify-end ml-2";
 
-                    if (isFloorClosed) {
-                        // ชั้นที่ถูกปิดตามจำนวนผู้เล่น
-                        roomBtn.className = "bg-slate-900 text-slate-600 border border-slate-800/50 px-4 py-1.5 rounded-lg text-xs font-bold cursor-not-allowed";
-                        roomBtn.textContent = roomCodeStr;
-                        roomBtn.disabled = true;
-                    } else {
-                        // ชั้นที่เปิดใช้งานปกติ
-                        roomBtn.className = "bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-200 border border-slate-700 px-4 py-1.5 rounded-lg text-xs font-bold transition shadow-sm";
+                    for (let roomNo = 1; roomNo <= 3; roomNo++) {
+                        const roomCodeStr = `${floor}0${roomNo}`; // เช่น 101, 102, 103
+                        const roomBtn = document.createElement("button");
+
+                        roomBtn.className = "flex-1 bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-200 border border-slate-700 py-1.5 rounded-lg text-xs font-bold transition shadow-sm text-center";
                         roomBtn.textContent = roomCodeStr;
 
-                        // ตรวจสอบสถานะเกมว่าเปิดให้กดเลือกห้องหรือยัง (เช่น ถ้าอยู่ในเฟส NIGHT หรือ DAY)
+                        // ตรวจสอบสถานะเกมว่าเปิดให้กดเลือกห้องหรือยัง
                         if (gameStatusState === "WAITING") {
                             roomBtn.disabled = true;
                             roomBtn.classList.add("opacity-50", "cursor-not-allowed");
@@ -246,12 +245,12 @@
                                 confirmModal.classList.add("flex");
                             };
                         }
-                    }
 
-                    roomsGroup.appendChild(roomBtn);
+                        roomsGroup.appendChild(roomBtn);
+                    }
+                    floorRow.appendChild(roomsGroup);
                 }
 
-                floorRow.appendChild(roomsGroup);
                 hotelMapContainer.appendChild(floorRow);
             }
 
