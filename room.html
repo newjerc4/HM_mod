@@ -171,7 +171,7 @@
                     <option value="Housekeeper">🧹 แม่บ้าน (Floor Scanner)</option>
                     <option value="GlassCleaner">🪟 ช่างเช็ดกระจก (Column Scanner)</option>
                     <option value="Detective">🔍 นักสืบ (Player Tracker)</option>
-                    <option value="Witness">👁️ พยาน (Floor Watcher)</option>
+                    <option value="Witness">👁️ พยาน (Higher/Lower Sensor)</option>
                 </select>
             </div>
 
@@ -200,7 +200,7 @@
             Housekeeper: "🧹 แม่บ้าน (Floor Scanner)",
             GlassCleaner: "🪟 ช่างเช็ดกระจก (Column Scanner)",
             Detective: "🔍 นักสืบ (Player Tracker)",
-            Witness: "👁️ พยาน (Floor Watcher)",
+            Witness: "👁️ พยาน (Higher/Lower Sensor)",
             Drunk: "🍻 คนเมา (Drunk)",
             Tourist: "🎒 นักท่องเที่ยว (Tourist)"
         };
@@ -212,7 +212,7 @@
             Housekeeper: "เลือก 1 ชั้น เพื่อตรวจสอบว่ามีผู้เล่นพักอยู่ในชั้นนั้นกี่คน (รู้ผลทันที)",
             GlassCleaner: "เลือก 1 คอลัมน์ (01, 02, 03) เพื่อนับจำนวนคนที่ยังมีชีวิตในแนวตั้งทั้งหมด (รู้ผลทันที)",
             Detective: "เลือกผู้เล่น 1 คน เพื่อสืบว่าคืนนี้เขาพักอยู่ที่ชั้นไหน (รู้ผลทันที)",
-            Witness: "เลือกเฝ้าดู 1 ชั้น หากคืนนี้คนร้ายมาลงมือที่ชั้นนี้ คุณจะรู้เบาะแสทันทีในตอนเช้า",
+            Witness: "เลือก 1 ชั้นอ้างอิง เพื่อตรวจสอบว่าชั้นที่คนร้ายลงมืออยู่สูงกว่า ต่ำกว่า หรือเท่ากับชั้นนี้ (รู้ผลทันทีเมื่อคนร้ายลงมือแล้ว)",
             Drunk: "ทำตัวให้คนสงสัยและโหวตคุณออกตอนกลางวัน เพื่อชนะคนเดียว!",
             Tourist: "คุณคือนักท่องเที่ยวผู้บริสุทธิ์ ไม่มีพลังพิเศษ เอาชีวิตรอดและช่วยกันโหวตหาคนร้าย"
         };
@@ -516,14 +516,36 @@
                     if (targetPlayer && targetPlayer.currentRoom) {
                         const floor = targetPlayer.currentRoom[0];
                         const roleTitle = me.role === "Detective" ? "🔍 นักสืบ" : "🤝 ผู้ช่วย";
-                        resultMessage = `${roleTitle}สืบทราบว่า: คุณ ${targetPlayer.name} พักอยู่ที่ <b>ชั้น ${floor}</b>`;
+                        resultMessage = `${roleTitle}สืบทราบว่า: คุณ ${targetPlayer.name} พักอยู่ที่ ชั้น ${floor}`;
                     } else {
                         resultMessage = `เป้าหมายไม่ได้อยู่ในห้องพักตอนนี้`;
                     }
                 }
                 else if (me.role === "Witness" && payload.type === "FLOOR") {
                     const refFloor = parseInt(payload.target);
-                    resultMessage = `👁️ เลือกเฝ้าดูชั้นที่ ${refFloor} เรียบร้อย รอสรุปเหตุการณ์ตอนเช้า`;
+                    
+                    // ค้นหาชั้นที่คนร้ายเลือกลงมือจาก nightActions ปัจจุบัน
+                    const nightActions = currentRoomData.nightActions || {};
+                    let killerTargetFloor = null;
+                    Object.keys(players).forEach(pid => {
+                        if (players[pid].role === "Killer" && nightActions[pid]?.target) {
+                            killerTargetFloor = parseInt(nightActions[pid].target[0]);
+                        }
+                    });
+
+                    if (killerTargetFloor !== null) {
+                        let hint = "";
+                        if (killerTargetFloor === refFloor) {
+                            hint = `คนร้ายพักอยู่ที่ชั้นที่คุณเฝ้าอยู่พอดี! 🎯`;
+                        } else if (killerTargetFloor > refFloor) {
+                            hint = `คนร้ายพักอยู่ที่ชั้น สูงกว่า ชั้นที่คุณเฝ้าอยู่ ⬆️`;
+                        } else {
+                            hint = `คนร้ายพักอยู่ที่ชั้น ต่ำกว่า ชั้นที่คุณเฝ้าอยู่ ⬇️`;
+                        }
+                        resultMessage = `👁️ ผลตรวจพยาน (ชั้นอ้างอิง ${refFloor}): ${hint}`;
+                    } else {
+                        resultMessage = `👁️ บันทึกชั้นอ้างอิง ${refFloor} เรียบร้อย (คนร้ายยังไม่ลงมือ)`;
+                    }
                 }
                 else {
                     resultMessage = `💤 เข้านอนเรียบร้อย`;
@@ -532,13 +554,16 @@
                 if (me.role !== "Witness") {
                     if (!me.clues) me.clues = [];
                     me.clues.push(`คืนที่ ${nightNum}: ${resultMessage}`);
+                } else {
+                    // สำหรับพยาน บันทึกผลทันทีที่เลือกเสร็จ
+                    if (!me.clues) me.clues = [];
+                    me.clues.push(`คืนที่ ${nightNum}: ${resultMessage}`);
                 }
 
                 try {
                     await set(ref(db, `rooms/${roomCode}/nightActions/${playerId}`), payload);
-                    if (me.role !== "Witness") {
-                        await update(ref(db, `rooms/${roomCode}/players/${playerId}`), { clues: me.clues });
-                    }
+                    await update(ref(db, `rooms/${roomCode}/players/${playerId}`), { clues: me.clues });
+                    
                     openResultModal(resultMessage);
                     await checkAndResolveNight();
                 } catch (error) {
@@ -595,40 +620,10 @@
                 if (!allSubmitted) return data; 
 
                 let killerTargetRoom = null;
-                let killerPlayerId = null;
                 aliveIds.forEach(id => {
                     if (players[id].role === "Killer") {
-                        killerPlayerId = id;
                         if (nightActions[id]?.target) {
                             killerTargetRoom = nightActions[id].target;
-                        }
-                    }
-                });
-
-                const nightNum = data.nightCount || 1;
-                // [แก้ไขจุดสำคัญ] ดึงชั้นจาก "ห้องที่คนร้ายเลือกลงมือ" (killerTargetRoom) แทนห้องพักของคนร้าย
-                const killerTargetFloor = killerTargetRoom ? parseInt(killerTargetRoom[0]) : null;
-                const killerHomeFloor = (killerPlayerId && players[killerPlayerId].currentRoom) ? parseInt(players[killerPlayerId].currentRoom[0]) : null;
-
-                // ตรวจสอบเงื่อนไขพยาน: พยานจะรู้เบาะแสก็ต่อเมื่อ "เลือกเฝ้าตรงกับชั้นที่คนร้ายเลือกลงมือเท่านั้น"
-                aliveIds.forEach(id => {
-                    const p = players[id];
-                    const act = nightActions[id];
-                    if (p.role === "Witness" && act?.target) {
-                        const refFloor = parseInt(act.target);
-                        let clueText = "";
-
-                        if (killerTargetFloor !== null && killerTargetFloor === refFloor) {
-                            // ตรงกับชั้นที่คนร้ายมาลงมือ!
-                            clueText = `คืนที่ ${nightNum}: 👁️ พบเบาะแสสำคัญ! คนร้ายบุกมาลงมือที่ชั้นที่คุณเฝ้าอยู่ (ชั้น ${refFloor}) และสืบทราบว่าคนร้ายพักอยู่ที่ชั้น ${killerHomeFloor} 🎯`;
-                        } else {
-                            // เลือกชั้นไม่ตรงกับที่คนร้ายลงมือ จะไม่ได้ข้อมูลคนร้าย
-                            clueText = `คืนที่ ${nightNum}: 👁️ เฝ้าดูชั้นที่ ${refFloor} ตลอดทั้งคืน แต่ไม่พบความเคลื่อนไหวของคนร้ายในชั้นนี้`;
-                        }
-                        
-                        if (!p.clues) p.clues = [];
-                        if (!p.clues.includes(clueText)) {
-                            p.clues.push(clueText);
                         }
                     }
                 });
@@ -1214,7 +1209,7 @@
                     Swal.fire({
                         icon: 'info',
                         title: 'โหมดเลือกห้องพบศพ',
-                        text: `กรุณาจิ้มเลือกห้องบนแผนผังโรงแรมทั้งหมด ${settingCrimeSceneCount} ห้อง เพื่อทำเป็น "พบศพ"`,
+                        text: `กรุณาจิ้มเลือกห้องบนแผนผังโรงแรมทั้งหมด ${settingCrimeSceneCount} ห้อง เพื่อสร้างห้องที่ "พบศพ"`,
                         confirmButtonColor: '#f59e0b',
                         background: '#0f172a',
                         color: '#f8fafc'
@@ -1227,7 +1222,7 @@
 
         resolveVoteBtn.onclick = async () => {
             Swal.fire({
-                title: 'สรุปผลโหวตและประหาร?',
+                title: 'สรุปผลโหวตและประชาทัณฑ์?',
                 text: "ระบบจะนับคะแนนโหวตสูงสุดเพื่อประหารผู้เล่นห้องนั้น",
                 icon: 'warning',
                 showCancelButton: true,
@@ -1277,7 +1272,7 @@
                                     if (executedPlayer.role === "Drunk") {
                                         data.status = "ENDED";
                                         data.winner = "DRUNK";
-                                        data.endMessage = `🍻 ผู้เล่น "${executedPlayer.name}" คือคนเมาที่ถูกโหวตประหารสำเร็จ! คนเมา ชนะเกมนี้คนเดียวเด็ดขาด!`;
+                                        data.endMessage = `🍻 ผู้เล่น "${executedPlayer.name}" คือคนเมาที่ถูกโหวตประหารสำเร็จ! คนเมา ชนะเกมนี้คนเดียว!`;
                                         data.morningNews = executionMsg + " | " + data.endMessage;
                                         data.players = players;
                                         data.closedRooms = closedRooms;
@@ -1295,8 +1290,8 @@
                             const currentNight = data.nightCount || 1;
                             if (currentNight >= 3) {
                                 data.status = "ENDED";
-                                data.winner = "TIMEOUT";
-                                data.endMessage = `⌛ ครบกำหนด 3 เทิร์นแล้ว! เกมจบลง`;
+                                data.winner = "KILLER";
+                                data.endMessage = `⌛ ครบกำหนด 3 เทิร์นแล้ว! ฝั่งคนดีหาตัวคนร้ายไม่พบ ➔ ฝั่งคนร้ายชนะเกมนี้!`;
                             } else {
                                 data.morningNews = executionMsg;
                                 data.status = "DAY_RESOLVED";
