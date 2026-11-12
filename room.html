@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hotel Murder - ห้องเกม</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- เพิ่ม SweetAlert2 สำหรับแจ้งเตือนบน iOS / มือถือทุกค่าย -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         body { font-family: sans-serif; }
     </style>
@@ -143,18 +145,6 @@
         </div>
     </div>
 
-    <!-- Modal แจ้งผลลัพธ์ทันที -->
-    <div id="resultModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="bg-slate-900 border border-sky-500/40 p-6 rounded-2xl max-w-sm w-full space-y-4 shadow-2xl text-center">
-            <div class="text-4xl">🔍</div>
-            <h3 class="text-lg font-bold text-sky-400">ผลการตรวจสอบ</h3>
-            <p id="resultModalText" class="text-sm text-slate-200 leading-relaxed bg-slate-950/70 p-3 rounded-xl border border-slate-800">-</p>
-            <button onclick="closeResultModal()" class="w-full bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold py-2.5 rounded-xl transition text-sm shadow-lg shadow-sky-500/20">
-                รับทราบ
-            </button>
-        </div>
-    </div>
-
     <!-- Modal ขั้นตอนที่ 1: เลือกบทบาทหลังเริ่มเกม -->
     <div id="setupRoleModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md hidden items-center justify-center p-4 z-50">
         <div class="bg-slate-900 border border-amber-500/50 p-6 rounded-2xl max-w-sm w-full space-y-4 shadow-2xl text-center">
@@ -228,8 +218,16 @@
         }
     
         if (!playerData || !playerData.playerId) {
-            alert("ไม่พบข้อมูลผู้เล่น!");
-            window.location.href = "index.html";
+            Swal.fire({
+                icon: 'error',
+                title: 'ไม่พบข้อมูลผู้เล่น',
+                text: 'กรุณาเข้าสู่ระบบใหม่อีกครั้ง',
+                confirmButtonColor: '#f59e0b',
+                background: '#0f172a',
+                color: '#f8fafc'
+            }).then(() => {
+                window.location.href = "index.html";
+            });
             throw new Error("Player data not found");
         }
     
@@ -238,8 +236,15 @@
         const playerName = playerData.playerName || playerData.name || "ผู้เล่นนิรนาม"; 
     
         if (!roomCode) {
-            alert("ไม่พบรหัสห้อง!");
-            window.location.href = "index.html";
+            Swal.fire({
+                icon: 'error',
+                title: 'ไม่พบรหัสห้อง',
+                confirmButtonColor: '#f59e0b',
+                background: '#0f172a',
+                color: '#f8fafc'
+            }).then(() => {
+                window.location.href = "index.html";
+            });
             throw new Error("Room code not found");
         }
 
@@ -277,9 +282,6 @@
         const confirmModalIcon = document.getElementById("confirmModalIcon");
         const confirmModalTitle = document.getElementById("confirmModalTitle");
         const confirmModalDesc = document.getElementById("confirmModalDesc");
-
-        const resultModal = document.getElementById("resultModal");
-        const resultModalText = document.getElementById("resultModalText");
         const setupRoleModal = document.getElementById("setupRoleModal");
 
         displayRoomCode.textContent = roomCode;
@@ -331,15 +333,17 @@
             pendingActionPayload = null;
         };
 
+        // ใช้ Swal แทนผลการตรวจสืบสวน (รองรับ iOS เต็มรูปแบบ)
         window.openResultModal = function(text) {
-            resultModalText.innerHTML = text;
-            resultModal.classList.remove("hidden");
-            resultModal.classList.add("flex");
-        };
-
-        window.closeResultModal = function() {
-            resultModal.classList.remove("flex");
-            resultModal.classList.add("hidden");
+            Swal.fire({
+                icon: 'info',
+                title: '🔍 ผลการตรวจสอบ',
+                html: text,
+                confirmButtonText: 'รับทราบ',
+                confirmButtonColor: '#38bdf8',
+                background: '#0f172a',
+                color: '#f8fafc'
+            });
         };
 
         window.submitSetupRole = async function() {
@@ -353,10 +357,24 @@
                 setupRoleModal.classList.remove("flex");
                 setupRoleModal.classList.add("hidden");
                 
-                alert("บันทึกบทบาทเรียบร้อย! กรุณากดเลือกหมายเลขห้องพักของคุณจากแผนผังโรงแรมด้านล่าง");
+                Swal.fire({
+                    icon: 'success',
+                    title: 'บันทึกบทบาทเรียบร้อย',
+                    text: 'กรุณากดเลือกหมายเลขห้องพักของคุณจากแผนผังโรงแรมด้านล่าง',
+                    confirmButtonColor: '#f59e0b',
+                    background: '#0f172a',
+                    color: '#f8fafc'
+                });
             } catch (error) {
                 console.error("Setup Role Error:", error);
-                alert("เกิดข้อผิดพลาด: " + error.message);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: error.message,
+                    confirmButtonColor: '#f59e0b',
+                    background: '#0f172a',
+                    color: '#f8fafc'
+                });
             }
         };
 
@@ -375,11 +393,27 @@
                         isReadySetup: true
                     });
 
-                    alert(`🏠 บันทึกห้องพัก ${payload.target} สำเร็จ! รอผู้เล่นคนอื่นให้ครบ...`);
+                    Swal.fire({
+                        icon: 'success',
+                        title: `บันทึกห้องพัก ${payload.target} สำเร็จ`,
+                        text: 'รอผู้เล่นคนอื่นเลือกให้ครบ...',
+                        timer: 2000,
+                        showConfirmButton: false,
+                        background: '#0f172a',
+                        color: '#f8fafc'
+                    });
+
                     await checkAllPlayersReady();
                 } catch (error) {
                     console.error("Setup Room Error:", error);
-                    alert("เกิดข้อผิดพลาด: " + error.message);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: error.message,
+                        confirmButtonColor: '#f59e0b',
+                        background: '#0f172a',
+                        color: '#f8fafc'
+                    });
                 }
                 return;
             }
@@ -433,13 +467,28 @@
                     await checkAndResolveNight();
                 } catch (error) {
                     console.error("Action Error:", error);
-                    alert("เกิดข้อผิดพลาด: " + error.message);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: error.message,
+                        confirmButtonColor: '#f59e0b',
+                        background: '#0f172a',
+                        color: '#f8fafc'
+                    });
                 }
             } 
             else if (currentStatus === "DAY") {
                 try {
                     await set(ref(db, `rooms/${roomCode}/dayVotes/${playerId}`), payload);
-                    alert(`🗳️ คุณได้โหวต ${payload.label} เรียบร้อยแล้ว`);
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'บันทึกการโหวตสำเร็จ',
+                        text: `คุณได้โหวต ${payload.label} เรียบร้อยแล้ว`,
+                        timer: 2000,
+                        showConfirmButton: false,
+                        background: '#0f172a',
+                        color: '#f8fafc'
+                    });
                 } catch (error) {
                     console.error("Vote Error:", error);
                 }
@@ -759,9 +808,16 @@
 
         onValue(roomRef, (snapshot) => {
             if (!snapshot.exists()) {
-                alert("ห้องนี้ถูกลบแล้ว!");
-                localStorage.removeItem("hotel_murder_session");
-                window.location.href = "index.html";
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ห้องนี้ถูกลบแล้ว',
+                    confirmButtonColor: '#f59e0b',
+                    background: '#0f172a',
+                    color: '#f8fafc'
+                }).then(() => {
+                    localStorage.removeItem("hotel_murder_session");
+                    window.location.href = "index.html";
+                });
                 return;
             }
 
@@ -772,9 +828,16 @@
 
             const me = players[playerId];
             if (!me) {
-                alert("คุณไม่ได้อยู่ในห้องนี้แล้ว!");
-                localStorage.removeItem("hotel_murder_session");
-                window.location.href = "index.html";
+                Swal.fire({
+                    icon: 'error',
+                    title: 'คุณไม่ได้อยู่ในห้องนี้แล้ว',
+                    confirmButtonColor: '#f59e0b',
+                    background: '#0f172a',
+                    color: '#f8fafc'
+                }).then(() => {
+                    localStorage.removeItem("hotel_murder_session");
+                    window.location.href = "index.html";
+                });
                 return;
             }
 
@@ -878,8 +941,6 @@
 
                 const playerInfo = document.createElement("span");
                 playerInfo.className = player.isAlive ? "text-slate-200" : "text-slate-500 line-through";
-                
-                // 🛑 ซ่อนหมายเลขห้องพักไม่ให้ผู้เล่นคนอื่นเห็น (แสดงเฉพาะชื่อและสถานะโฮสต์)[cite: 1]
                 playerInfo.textContent = player.name + (player.isHost ? " 👑" : "");
 
                 const rightBox = document.createElement("div");
@@ -911,7 +972,14 @@
 
         }, (error) => {
             console.error("Firebase Error:", error);
-            alert("ไม่สามารถโหลดข้อมูลห้องได้: " + error.message);
+            Swal.fire({
+                icon: 'error',
+                title: 'ไม่สามารถโหลดข้อมูลห้องได้',
+                text: error.message,
+                confirmButtonColor: '#f59e0b',
+                background: '#0f172a',
+                color: '#f8fafc'
+            });
         });
 
         function shuffle(array) {
@@ -924,43 +992,95 @@
         }
 
         startGameBtn.onclick = async () => {
-            if (!confirm("ต้องการเริ่มเกมและเปิดระบบให้ผู้เล่นเลือกบทบาทและห้องพักหรือไม่?")) return;
-
-            try {
-                await update(roomRef, {
-                    status: "SETUP"
-                });
-            } catch (error) {
-                console.error(error);
-                alert("เกิดข้อผิดพลาด: " + error.message);
-            }
+            Swal.fire({
+                title: 'เริ่มเกม?',
+                text: "ต้องการเปิดระบบให้ผู้เล่นเลือกบทบาทและห้องพักหรือไม่?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#f59e0b',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'ใช่, เริ่มเกม',
+                cancelButtonText: 'ยกเลิก',
+                background: '#0f172a',
+                color: '#f8fafc'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        await update(roomRef, {
+                            status: "SETUP"
+                        });
+                    } catch (error) {
+                        console.error(error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: error.message,
+                            background: '#0f172a',
+                            color: '#f8fafc'
+                        });
+                    }
+                }
+            });
         };
 
         nextNightBtn.onclick = async () => {
-            if (!confirm("ต้องการจบช่วงเช้าและเข้าสู่คืนถัดไป (สุ่มย้ายห้องพักใหม่) หรือไม่?")) return;
-
-            try {
-                await runTransaction(roomRef, (data) => {
-                    if (!data || data.status !== "DAY") return;
-                    const maxPlayers = data.maxPlayers || 6;
-                    data.players = assignRandomRooms(data.players || {}, maxPlayers);
-                    data.status = "NIGHT";
-                    data.nightCount = (data.nightCount || 1) + 1;
-                    data.nightActions = null;
-                    data.dayVotes = null;
-                    data.morningNews = null;
-                    return data;
-                });
-            } catch (error) {
-                console.error(error);
-                alert("เกิดข้อผิดพลาด: " + error.message);
-            }
+            Swal.fire({
+                title: 'เข้าสู่คืนถัดไป?',
+                text: "ต้องการจบช่วงเช้าและสุ่มย้ายห้องพักใหม่หรือไม่?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#6366f1',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'ใช่, ไปคืนถัดไป',
+                cancelButtonText: 'ยกเลิก',
+                background: '#0f172a',
+                color: '#f8fafc'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        await runTransaction(roomRef, (data) => {
+                            if (!data || data.status !== "DAY") return;
+                            const maxPlayers = data.maxPlayers || 6;
+                            data.players = assignRandomRooms(data.players || {}, maxPlayers);
+                            data.status = "NIGHT";
+                            data.nightCount = (data.nightCount || 1) + 1;
+                            data.nightActions = null;
+                            data.dayVotes = null;
+                            data.morningNews = null;
+                            return data;
+                        });
+                    } catch (error) {
+                        console.error(error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: error.message,
+                            background: '#0f172a',
+                            color: '#f8fafc'
+                        });
+                    }
+                }
+            });
         };
 
         document.getElementById("leaveRoomBtn").onclick = () => {
-            if (!confirm("ต้องการออกจากห้องหรือไม่?")) return;
-            localStorage.removeItem("hotel_murder_session");
-            window.location.href = "index.html";
+            Swal.fire({
+                title: 'ออกจากห้อง?',
+                text: "คุณต้องการออกจากห้องนี้ใช่หรือไม่?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'ออกจากห้อง',
+                cancelButtonText: 'ยกเลิก',
+                background: '#0f172a',
+                color: '#f8fafc'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    localStorage.removeItem("hotel_murder_session");
+                    window.location.href = "index.html";
+                }
+            });
         };
     </script>
 
