@@ -466,7 +466,6 @@
                     }
                 }
 
-                // [แก้จุดที่ 2] แก้ไขการย้ายห้องของคนเมาให้บันทึกสำเร็จ
                 if (me.role === "Drunk" && isDrunkMovingRoom && payload.type === "DRUNK_MOVE") {
                     try {
                         await update(ref(db, `rooms/${roomCode}/players/${playerId}`), {
@@ -522,7 +521,6 @@
                 }
                 else if (me.role === "Witness" && payload.type === "FLOOR") {
                     const refFloor = parseInt(payload.target);
-                    // [แก้จุดที่ 1] บันทึกชั้นที่พยานเลือกรอดำเนินการ (ยังไม่ประมวลผลผลลัพธ์ตอนนี้ทันที เพื่อรอคนร้ายลงมือ)
                     resultMessage = `👁️ บันทึกชั้นอ้างอิง ${refFloor} เรียบร้อย รอผลสรุปตอนคนร้ายลงมือ`;
                 }
                 else {
@@ -586,6 +584,10 @@
                 const nightActions = data.nightActions || {};
                 const aliveIds = Object.keys(players).filter(id => players[id].isAlive);
 
+                // เช็คว่าทุกคนที่ยังมีชีวิตอยู่ส่ง Action ครบหมดหรือยัง (ไม่จำกัดเฉพาะบางบทบาท)
+                const allSubmitted = aliveIds.every(id => nightActions[id] !== undefined);
+                if (!allSubmitted) return data; // ถ้ายังไม่ครบทุกคนให้นอนรอต่อไป
+
                 let killerTargetRoom = null;
                 let killerPlayerId = null;
                 aliveIds.forEach(id => {
@@ -597,23 +599,10 @@
                     }
                 });
 
-                // [แก้จุดที่ 1] เช็คว่าคนร้ายเลือกห้องเป้าหมายหรือยัง? ถ่ายยังไม่เลือก ห้ามคำนวณของพยานและห้ามเปลี่ยนสถานะข้ามวัน
-                if (!killerTargetRoom) {
-                    return data; // คนร้ายยังไม่เลือกห้อง ให้รอต่อไป
-                }
-
-                // เช็คต่อว่าแอคชั่นของบทบาทสำคัญอื่นๆ ครบหรือยัง
-                const requiredActionIds = aliveIds.filter(id => {
-                    const r = players[id].role;
-                    return r === "Killer" || r === "Locksmith" || r === "Accomplice";
-                });
-                const allSubmitted = requiredActionIds.every(id => nightActions[id] !== undefined);
-                if (!allSubmitted) return data;
-
                 const nightNum = data.nightCount || 1;
                 const killerRealFloor = (killerPlayerId && players[killerPlayerId].currentRoom) ? parseInt(players[killerPlayerId].currentRoom[0]) : null;
 
-                // [แก้จุดที่ 1] ตอนนี้คนร้ายลงมือแล้ว คำนวณเบาะแสของพยานให้ถูกต้องตรงนี้ทีเดียว
+                // เมื่อทุกคนทำแอคชั่นครบและคนร้ายลงมือแล้ว คำนวณผลของพยาน
                 aliveIds.forEach(id => {
                     const p = players[id];
                     const act = nightActions[id];
@@ -704,7 +693,7 @@
             if (data.status === "NIGHT") {
                 const nightActions = data.nightActions || {};
                 const myAction = nightActions[playerId];
-                const submittedCount = aliveIds.filter(id => nightActions[id] || players[id].role === "Drunk" || players[id].role === "Tourist" || players[id].role === "Housekeeper" || players[id].role === "GlassCleaner" || players[id].role === "Detective").length;
+                const submittedCount = aliveIds.filter(id => nightActions[id]).length;
 
                 actionTitle.textContent = `🌙 ภารกิจคืนที่ ${data.nightCount || 1}`;
                 actionProgress.textContent = `ดำเนินการแล้ว ${submittedCount}/${aliveIds.length} คน`;
@@ -915,7 +904,6 @@
                                 } else if (canClickMapInCrimeScene) {
                                     openConfirmModal("กำหนดห้องพบศพ", `ยืนยันกำหนดให้ <b>ห้อง ${roomCodeStr}</b> เป็นห้องพบศพ ใช่หรือไม่?`, "📍", { type: "CRIME_SCENE", target: roomCodeStr, label: `ห้อง ${roomCodeStr}` });
                                 } else if (canClickMapInDrunkMove) {
-                                    // [แก้จุดที่ 2] เปิด modal ยืนยันการย้ายห้องของคนเมาถูกต้อง
                                     openConfirmModal("ยืนยันย้ายห้อง", `ยืนยันย้ายไปพักที่ <b>ห้อง ${roomCodeStr}</b> คืนนี้ใช่หรือไม่?`, "🍻", { type: "DRUNK_MOVE", target: roomCodeStr, label: `ห้อง ${roomCodeStr}` });
                                 } else {
                                     const actionWord = gameStatusState === "NIGHT" ? (role === "Killer" ? "บุกสังหาร" : "ล็อกป้องกัน") : "โหวตเปิดโปง";
