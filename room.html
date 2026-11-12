@@ -408,7 +408,7 @@
                     const roomLabels = currentRoomData.roomLabels || {};
                     
                     closedRooms[payload.target] = true;
-                    roomLabels[payload.target] = "ห้องปิด";
+                    roomLabels[payload.target] = "พบศพ"; // แก้เป็นห้องพบศพตามรีเควส
                     settingCrimeSceneCount--;
 
                     const updates = { closedRooms, roomLabels };
@@ -422,7 +422,7 @@
                     if (settingCrimeSceneCount > 0) {
                         Swal.fire({
                             icon: 'info',
-                            title: `กำหนดห้อง ${payload.target} เป็นห้องปิดแล้ว`,
+                            title: `กำหนดห้อง ${payload.target} เป็นห้องพบศพแล้ว`,
                             text: `เหลือที่ต้องเลือกอีก ${settingCrimeSceneCount} ห้อง`,
                             timer: 1500,
                             showConfirmButton: false,
@@ -451,6 +451,22 @@
             let resultMessage = "";
 
             if (currentStatus === "NIGHT") {
+                // 1. ช่างทำกุญแจห้ามเลือกห้องซ้ำกับคืนที่แล้ว
+                if (me.role === "Locksmith") {
+                    const lastLock = currentRoomData.lastLockedRoom || null;
+                    if (payload.target === lastLock) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'ไม่สามารถเลือกห้องนี้ได้',
+                            text: 'ช่างทำกุญแจไม่สามารถล็อกห้องซ้ำกับคืนที่แล้วได้!',
+                            confirmButtonColor: '#f59e0b',
+                            background: '#0f172a',
+                            color: '#f8fafc'
+                        });
+                        return;
+                    }
+                }
+
                 if (me.role === "Drunk" && isDrunkMovingRoom && payload.type === "DRUNK_MOVE") {
                     try {
                         await update(ref(db, `rooms/${roomCode}/players/${playerId}`), {
@@ -513,12 +529,13 @@
                         }
                     });
 
+                    // 2. พยานโชว์แค่ สูงกว่า เท่ากัน หรือต่ำกว่า (ไม่เฉลยเลขชั้น)
                     if (killerRealFloor !== null && killerRealFloor === refFloor) {
-                        resultMessage = `👁️ ผลตรวจพยาน (ชั้นอ้างอิง ${refFloor}): คนร้ายอยู่ชั้นที่คุณเฝ้าอยู่พอดี! 🎯 (ชั้น ${killerRealFloor})`;
+                        resultMessage = `👁️ ผลตรวจพยาน (ชั้นอ้างอิง ${refFloor}): คนร้ายอยู่ชั้นที่คุณเฝ้าอยู่พอดี! 🎯`;
                     } else if (killerRealFloor !== null && killerRealFloor > refFloor) {
-                        resultMessage = `👁️ ผลตรวจพยาน (ชั้นอ้างอิง ${refFloor}): คนร้ายอยู่สูงกว่าชั้นที่คุณเฝ้าอยู่ ⬆️ (ชั้น ${killerRealFloor})`;
+                        resultMessage = `👁️ ผลตรวจพยาน (ชั้นอ้างอิง ${refFloor}): คนร้ายอยู่สูงกว่าชั้นที่คุณเฝ้าอยู่ ⬆️`;
                     } else if (killerRealFloor !== null && killerRealFloor < refFloor) {
-                        resultMessage = `👁️ ผลตรวจพยาน (ชั้นอ้างอิง ${refFloor}): คนร้ายอยู่ต่ำกว่าชั้นที่คุณเฝ้าอยู่ ⬇️ (ชั้น ${killerRealFloor})`;
+                        resultMessage = `👁️ ผลตรวจพยาน (ชั้นอ้างอิง ${refFloor}): คนร้ายอยู่ต่ำกว่าชั้นที่คุณเฝ้าอยู่ ⬇️`;
                     } else {
                         resultMessage = `👁️ บันทึกชั้นอ้างอิง ${refFloor} เรียบร้อย (ไม่พบเบาะแสเพิ่มเติม)`;
                     }
@@ -601,11 +618,11 @@
                         const refFloor = parseInt(act.target);
                         let hint = "";
                         if (killerRealFloor === refFloor) {
-                            hint = `คนร้ายอยู่ชั้นที่คุณเฝ้าอยู่พอดี! 🎯 (ชั้น ${killerRealFloor})`;
+                            hint = `คนร้ายอยู่ชั้นที่คุณเฝ้าอยู่พอดี! 🎯`;
                         } else if (killerRealFloor > refFloor) {
-                            hint = `คนร้ายอยู่สูงกว่าชั้นที่คุณเฝ้าอยู่ ⬆️ (ชั้น ${killerRealFloor})`;
+                            hint = `คนร้ายอยู่สูงกว่าชั้นที่คุณเฝ้าอยู่ ⬆️`;
                         } else {
-                            hint = `คนร้ายอยู่ต่ำกว่าชั้นที่คุณเฝ้าอยู่ ⬇️ (ชั้น ${killerRealFloor})`;
+                            hint = `คนร้ายอยู่ต่ำกว่าชั้นที่คุณเฝ้าอยู่ ⬇️`;
                         }
                         
                         const clueText = `คืนที่ ${nightNum}: ผลตรวจพยาน (ชั้นอ้างอิง ${refFloor}): ${hint}`;
@@ -616,6 +633,7 @@
                     }
                 });
 
+                // 4. ข้ามผู้เล่นที่เสียชีวิตแล้ว เช็คเฉพาะคนที่ยังมีชีวิตอยู่
                 const requiredActionIds = aliveIds.filter(id => {
                     const r = players[id].role;
                     return r === "Killer" || r === "Locksmith" || r === "Accomplice";
@@ -627,6 +645,7 @@
                 aliveIds.forEach(id => {
                     if (players[id].role === "Locksmith" && nightActions[id]?.target) {
                         lockedRoom = nightActions[id].target;
+                        data.lastLockedRoom = lockedRoom; // บันทึกห้องที่ล็อกไว้เช็คคืนถัดไป
                     }
                 });
 
@@ -642,11 +661,12 @@
                         if (victimId) {
                             players[victimId].isAlive = false;
                             closedRooms[killerTargetRoom] = true;
-                            roomLabels[killerTargetRoom] = "ผู้เคราะห์ร้าย"; // ห้องที่โดนคนร้ายสังหารสำเร็จ
-                            newsMessage = `เกิดเหตุฆาตกรรมขึ้นที่ห้อง ${killerTargetRoom}! พบศพของ "${players[victimId].name}" เสียชีวิตในห้องพัก ➔ (ห้องนี้กลายเป็นผู้เคราะห์ร้าย)`;
+                            // 3. รูปแบบข้อความผู้เคราะห์ร้ายตามรีเควส
+                            roomLabels[killerTargetRoom] = "ผู้เคราะห์ร้าย";
+                            newsMessage = `เกิดเหตุฆาตกรรมขึ้นที่ห้อง ${killerTargetRoom}! พบศพของ "${players[victimId].name}" ➔ เสียชีวิตในห้องพัก`;
                         } else {
                             closedRooms[killerTargetRoom] = true;
-                            roomLabels[killerTargetRoom] = "ห้องว่าง"; // ห้องที่คนร้ายเลือกแต่ไม่มีคนอยู่
+                            roomLabels[killerTargetRoom] = "ห้องว่าง";
                             newsMessage = `เมื่อคืนมีเสียงดังผิดปกติที่ห้อง ${killerTargetRoom} แต่ห้องนั้นไม่มีคนอยู่ ➔ (ห้องนี้คือห้องว่าง)`;
                         }
                     }
@@ -827,7 +847,6 @@
             const maxActiveFloor = getMaxActiveFloor(maxPlayers);
             const closedRooms = data.closedRooms || {};
             const roomLabels = data.roomLabels || {};
-            const highestVotedRoom = data.highestVotedRoom || null;
 
             const role = me.role;
             const canClickMapInSetup = gameStatusState === "SETUP" && !me.isReadySetup;
@@ -900,7 +919,7 @@
                                 if (gameStatusState === "SETUP") {
                                     openConfirmModal("ยืนยันห้องพักของคุณ", `ยืนยันเลือกเข้าพักที่ <b>ห้อง ${roomCodeStr}</b> ใช่หรือไม่?`, "🏨", { type: "SETUP_ROOM", target: roomCodeStr, label: `ห้อง ${roomCodeStr}` });
                                 } else if (canClickMapInCrimeScene) {
-                                    openConfirmModal("กำหนดห้องปิด", `ยืนยันกำหนดให้ <b>ห้อง ${roomCodeStr}</b> เป็นห้องปิด ใช่หรือไม่?`, "📍", { type: "CRIME_SCENE", target: roomCodeStr, label: `ห้อง ${roomCodeStr}` });
+                                    openConfirmModal("กำหนดห้องพบศพ", `ยืนยันกำหนดให้ <b>ห้อง ${roomCodeStr}</b> เป็นห้องพบศพ ใช่หรือไม่?`, "📍", { type: "CRIME_SCENE", target: roomCodeStr, label: `ห้อง ${roomCodeStr}` });
                                 } else if (canClickMapInDrunkMove) {
                                     openConfirmModal("ยืนยันย้ายห้อง", `ยืนยันย้ายไปพักที่ <b>ห้อง ${roomCodeStr}</b> คืนนี้ใช่หรือไม่?`, "🍻", { type: "DRUNK_MOVE", target: roomCodeStr, label: `ห้อง ${roomCodeStr}` });
                                 } else {
@@ -935,7 +954,7 @@
                 mapStatusHint.textContent = `👆 แตะเลือกห้องพักของคุณบนแผนผัง`;
                 mapStatusHint.className = "text-xs text-sky-400 bg-sky-400/10 px-2.5 py-0.5 rounded border border-sky-400/20 animate-pulse";
             } else if (gameStatusState === "SETUP_CRIME_SCENE") {
-                mapStatusHint.textContent = `📍 Host กำหนดห้องปิด (${settingCrimeSceneCount} ห้อง)`;
+                mapStatusHint.textContent = `📍 Host กำหนดห้องพบศพ (${settingCrimeSceneCount} ห้อง)`;
                 mapStatusHint.className = "text-xs text-rose-400 bg-rose-400/10 px-2.5 py-0.5 rounded border border-rose-400/20 animate-pulse";
             } else if (isThisRoomInteractive || canClickMapInNight || canClickMapInDay) {
                 mapStatusHint.textContent = `👆 แตะเลือกห้องบนแผนผัง`;
@@ -1007,7 +1026,7 @@
                     setupRoleModal.classList.add("flex");
                 }
             } else if (currentStatus === "WAITING_CRIME_SCENE" || currentStatus === "SETUP_CRIME_SCENE") {
-                gameStatus.textContent = "📍 กำหนดห้องปิด (Crime Scene)";
+                gameStatus.textContent = "📍 กำหนดห้องพบศพ (Crime Scene)";
                 gameStatus.className = "font-bold text-rose-400 bg-rose-500/10 px-3 py-1 rounded-full border border-rose-500/20";
             } else if (currentStatus === "NIGHT") {
                 gameStatus.textContent = "🌙 เฟสกลางคืน (Night)";
@@ -1049,6 +1068,12 @@
                     setupCrimeSceneBtn.classList.add("hidden");
                     resolveVoteBtn.classList.remove("hidden");
                     nextNightBtn.classList.add("hidden");
+                } else if (currentStatus === "DAY_RESOLVED") {
+                    hostControls.classList.remove("hidden");
+                    startGameBtn.classList.add("hidden");
+                    setupCrimeSceneBtn.classList.add("hidden");
+                    resolveVoteBtn.classList.add("hidden");
+                    nextNightBtn.classList.remove("hidden"); // เปิดปุ่มเข้าสู่คืนถัดไปให้ Host กด
                 } else {
                     hostControls.classList.add("hidden");
                 }
@@ -1171,7 +1196,7 @@
 
         setupCrimeSceneBtn.onclick = async () => {
             const { value: count } = await Swal.fire({
-                title: 'กำหนดจำนวนห้องปิด',
+                title: 'กำหนดจำนวนห้องพบศพ',
                 input: 'number',
                 inputLabel: 'ระบุจำนวนห้องที่จะปิดตอนเริ่มต้น (เช่น 1, 2, 3)',
                 inputAttributes: {
@@ -1194,8 +1219,8 @@
                     });
                     Swal.fire({
                         icon: 'info',
-                        title: 'โหมดเลือกห้องปิด',
-                        text: `กรุณาจิ้มเลือกห้องบนแผนผังโรงแรมทั้งหมด ${settingCrimeSceneCount} ห้อง เพื่อทำเป็น "ห้องปิด"`,
+                        title: 'โหมดเลือกห้องพบศพ',
+                        text: `กรุณาจิ้มเลือกห้องบนแผนผังโรงแรมทั้งหมด ${settingCrimeSceneCount} ห้อง เพื่อทำเป็น "พบศพ"`,
                         confirmButtonColor: '#f59e0b',
                         background: '#0f172a',
                         color: '#f8fafc'
@@ -1246,12 +1271,14 @@
                             let executionMsg = "";
                             if (highestRoom) {
                                 closedRooms[highestRoom] = true;
-                                roomLabels[highestRoom] = "ประชาทัณฑ์"; // ห้องที่โดนทุกคนรุมโหวต
-                                const executedPlayerId = Object.keys(players).find(pid => players[pid].isAlive && players[pid].currentRoom === highestRoom);
                                 
-                                if (executedPlayerId) {
-                                    players[executedPlayerId].isAlive = false;
-                                    const executedPlayer = players[executedPlayerId];
+                                // เช็คว่ามีคนอยู่ไหมเพื่อใส่ป้าย (ประชาทัณฑ์ หรือ ห้องว่าง)
+                                const targetPlayerId = Object.keys(players).find(pid => players[pid].isAlive && players[pid].currentRoom === highestRoom);
+                                
+                                if (targetPlayerId) {
+                                    roomLabels[highestRoom] = "ประชาทัณฑ์";
+                                    players[targetPlayerId].isAlive = false;
+                                    const executedPlayer = players[targetPlayerId];
                                     executionMsg = `ผลโหวตสูงสุดตกที่ห้อง ${highestRoom} (ประชาทัณฑ์)! ถูกโหวตประหารชีวิตผู้เล่น "${executedPlayer.name}" (${ROLE_NAMES_TH[executedPlayer.role] || executedPlayer.role})`;
 
                                     if (executedPlayer.role === "Drunk") {
@@ -1265,7 +1292,8 @@
                                         return data;
                                     }
                                 } else {
-                                    executionMsg = `ผลโหวตสูงสุดตกที่ห้อง ${highestRoom} (ประชาทัณฑ์) แต่ห้องนั้นไม่มีใครพักอยู่ ไม่มีใครถูกประหาร`;
+                                    roomLabels[highestRoom] = "ห้องว่าง";
+                                    executionMsg = `ผลโหวตสูงสุดตกที่ห้อง ${highestRoom} แต่ห้องนั้นเป็นห้องว่าง ไม่มีใครพักอยู่ ไม่มีใครถูกประหาร`;
                                 }
                             } else {
                                 executionMsg = `ไม่มีการโหวตใดๆ เกิดขึ้นในวันนี้`;
@@ -1291,6 +1319,22 @@
                     }
                 }
             });
+        };
+
+        // Host กดปุ่มเข้าสู่คืนถัดไป
+        nextNightBtn.onclick = async () => {
+            try {
+                await runTransaction(roomRef, (data) => {
+                    if (!data || data.status !== "DAY_RESOLVED") return;
+                    data.nightCount = (data.nightCount || 1) + 1;
+                    data.status = "NIGHT";
+                    data.dayVotes = null;
+                    data.morningNews = null;
+                    return data;
+                });
+            } catch (error) {
+                console.error(error);
+            }
         };
 
         document.getElementById("leaveRoomBtn").onclick = () => {
