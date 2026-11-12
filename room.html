@@ -20,7 +20,7 @@
         <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl text-center shadow-xl">
             <div class="flex justify-between items-center text-xs text-slate-400 mb-1">
                 <span>รหัสห้อง: <b id="displayRoomCode" class="text-amber-400 text-sm tracking-wider">---</b></span>
-                <span id="nightCounter" class="bg-slate-800 px-2.5 py-0.5 rounded-full text-slate-300">เตรียมพร้อม</span>
+                <span id="nightCounter" class="bg-slate-800 px-2.5 py-0.5 rounded-full text-slate-300">เตรียมพร้อม (เทิร์นที่ 1/3)</span>
             </div>
 
             <div class="mt-2 pt-2 border-t border-slate-800 flex justify-between items-center text-sm">
@@ -84,12 +84,16 @@
                 class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2.5 rounded-xl transition shadow-lg shadow-amber-500/10 text-sm">
                 เริ่มเกม (ให้ผู้เล่นเลือกบทบาทและห้องพัก)
             </button>
+            <button id="resolveVoteBtn"
+                class="hidden w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-2.5 rounded-xl transition shadow-lg text-sm">
+                ⚖️ สรุปผลโหวตประจำวัน & ตัดสินประหาร
+            </button>
             <button id="nextNightBtn"
                 class="hidden w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2.5 rounded-xl transition shadow-lg text-sm">
-                🌙 เข้าสู่คืนถัดไป (สุ่มย้ายห้องพักใหม่)
+                🌙 เข้าสู่คืนถัดไป
             </button>
             <p id="hostHintText" class="text-slate-400 text-xs text-center">
-                เมื่อผู้เล่นทุกคนเลือกบทบาทและห้องพักบนแผนผังครบแล้ว เกมจะเริ่มอัตโนมัติ
+                เกมจำกัดความยาวสูงสุด 3 เทิร์น (3 คืน 3 วัน)
             </p>
         </div>
 
@@ -156,6 +160,7 @@
                 <label class="block text-xs font-medium text-slate-400 mb-1">บทบาทที่ได้รับ</label>
                 <select id="setupRoleSelect" 
                     class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-3 text-white text-xs focus:outline-none focus:border-amber-400">
+                    <option value="Drunk">🍻 คนเมา (Drunk - โดนโหวตออกชนะคนเดียว)</option>
                     <option value="Killer">🗡️ คนร้าย (Killer)</option>
                     <option value="Accomplice">🤝 ผู้ช่วยคนร้าย (Accomplice)</option>
                     <option value="Locksmith">🔑 ช่างทำกุญแจ (Locksmith)</option>
@@ -192,6 +197,7 @@
             GlassCleaner: "🪟 ช่างเช็ดกระจก (Column Scanner)",
             Detective: "🔍 นักสืบ (Player Tracker)",
             Witness: "👁️ พยาน (Higher/Lower Sensor)",
+            Drunk: "🍻 คนเมา (Drunk)"
         };
 
         const ROLE_DESCRIPTIONS = {
@@ -199,9 +205,10 @@
             Accomplice: "เลือกผู้เล่น 1 คน เพื่อสืบว่าคืนนี้เขาพักอยู่ที่ชั้นไหน (รู้ผลทันที)",
             Locksmith: "เลือก 1 ห้องบนแผนผังเพื่อล็อกประตู ป้องกันคนร้ายบุกคืนนี้",
             Housekeeper: "เลือก 1 ชั้น เพื่อตรวจสอบว่ามีผู้เล่นพักอยู่ในชั้นนั้นกี่คน (รู้ผลทันที)",
-            GlassCleaner: "เลือก 1 คอลัมน์ (1, 2, 3) เพื่อนับจำนวนคนที่ยังมีชีวิตในแนวตั้งทั้งหมด (รู้ผลทันที)",
+            GlassCleaner: "เลือก 1 คอลัมน์ (01, 02, 03) เพื่อนับจำนวนคนที่ยังมีชีวิตในแนวตั้งทั้งหมด (รู้ผลทันที)",
             Detective: "เลือกผู้เล่น 1 คน เพื่อสืบว่าคืนนี้เขาพักอยู่ที่ชั้นไหน (รู้ผลทันที)",
-            Witness: "เลือก 1 ชั้นอ้างอิง เพื่อดูว่าชั้นที่คนร้ายลงมืออยู่สูงหรือต่ำกว่าชั้นนี้ (รู้ผลทันทีเมื่อคนร้ายเลือกแล้ว)",
+            Witness: "เลือก 1 ชั้นอ้างอิง เพื่อดูว่าชั้นที่คนร้ายลงมืออยู่สูงหรือต่ำกว่าชั้นนี้",
+            Drunk: "ทำตัวให้คนสงสัยและโหวตคุณออกตอนกลางวัน เพื่อชนะคนเดียว!"
         };
         
         const urlParams = new URLSearchParams(window.location.search);
@@ -268,6 +275,7 @@
 
         const hostControls = document.getElementById("hostControls");
         const startGameBtn = document.getElementById("startGameBtn");
+        const resolveVoteBtn = document.getElementById("resolveVoteBtn");
         const nextNightBtn = document.getElementById("nextNightBtn");
 
         const hotelMapContainer = document.getElementById("hotelMapContainer");
@@ -286,33 +294,13 @@
 
         let currentRoomData = null;
         let pendingActionPayload = null;
+        let isDrunkMovingRoom = false; // ตัวแปรเช็คว่าคนเมาอยู่ระหว่างเลือกย้ายห้องไหม
 
         function getMaxActiveFloor(maxPlayers) {
             if (maxPlayers === 6) return 6;
             if (maxPlayers === 7) return 7;
             if (maxPlayers === 8) return 8;
             return 9;
-        }
-
-        function assignRandomRooms(playersObj, maxPlayers) {
-            const maxFloor = getMaxActiveFloor(maxPlayers);
-            const allAvailableRooms = [];
-            for (let f = 1; f <= maxFloor; f++) {
-                for (let r = 1; r <= 3; r++) {
-                    allAvailableRooms.push(`${f}0${r}`);
-                }
-            }
-            const shuffledRooms = shuffle(allAvailableRooms);
-            let roomIndex = 0;
-
-            Object.keys(playersObj).forEach(id => {
-                if (playersObj[id].isAlive) {
-                    playersObj[id].currentRoom = shuffledRooms[roomIndex++];
-                } else {
-                    playersObj[id].currentRoom = null;
-                }
-            });
-            return playersObj;
         }
 
         window.openConfirmModal = function(title, descText, icon, payload) {
@@ -402,14 +390,6 @@
                     await checkAllPlayersReady();
                 } catch (error) {
                     console.error("Setup Room Error:", error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'เกิดข้อผิดพลาด',
-                        text: error.message,
-                        confirmButtonColor: '#f59e0b',
-                        background: '#0f172a',
-                        color: '#f8fafc'
-                    });
                 }
                 return;
             }
@@ -420,6 +400,26 @@
             let resultMessage = "";
 
             if (currentStatus === "NIGHT") {
+                // กรณีคนเมาเลือกย้ายห้องเสร็จแล้ว
+                if (me.role === "Drunk" && isDrunkMovingRoom && payload.type === "DRUNK_MOVE") {
+                    try {
+                        await update(ref(db, `rooms/${roomCode}/players/${playerId}`), {
+                            currentRoom: payload.target
+                        });
+                        isDrunkMovingRoom = false;
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'ย้ายห้องสำเร็จ',
+                            text: `คืนนี้คุณย้ายมาพักที่ห้อง ${payload.target}`,
+                            background: '#0f172a',
+                            color: '#f8fafc'
+                        });
+                        return;
+                    } catch (error) {
+                        console.error(error);
+                    }
+                }
+
                 if (me.role === "Housekeeper" && payload.type === "FLOOR") {
                     const targetFloor = parseInt(payload.target);
                     const count = Object.keys(players).filter(pid => {
@@ -448,7 +448,6 @@
                 }
                 else if (me.role === "Witness" && payload.type === "FLOOR") {
                     const refFloor = parseInt(payload.target);
-                    // ตรวจสอบว่าคนร้ายเลือกห้องหรือยัง
                     const nightActions = currentRoomData.nightActions || {};
                     let killerTargetRoom = null;
                     Object.keys(players).forEach(pid => {
@@ -465,7 +464,7 @@
                         else hint = `อยู่ชั้น ${refFloor} พอดี! 🎯`;
                         resultMessage = `👁️ ผลตรวจพยาน (ชั้นอ้างอิง ${refFloor}): เป้าหมายที่คนร้ายเลือก ${hint}`;
                     } else {
-                        resultMessage = `👁️ บันทึกชั้นอ้างอิง ${refFloor} เรียบร้อย (คนร้ายยังไม่ลงมือ จะแสดงผลทันทีเมื่อคนร้ายเลือกห้อง)`;
+                        resultMessage = `👁️ บันทึกชั้นอ้างอิง ${refFloor} เรียบร้อย (รอคนร้ายเลือกห้อง)`;
                     }
                 }
                 else {
@@ -482,14 +481,6 @@
                     await checkAndResolveNight();
                 } catch (error) {
                     console.error("Action Error:", error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'เกิดข้อผิดพลาด',
-                        text: error.message,
-                        confirmButtonColor: '#f59e0b',
-                        background: '#0f172a',
-                        color: '#f8fafc'
-                    });
                 }
             } 
             else if (currentStatus === "DAY") {
@@ -534,7 +525,6 @@
                 const nightActions = data.nightActions || {};
                 const aliveIds = Object.keys(players).filter(id => players[id].isAlive);
 
-                // หากพยานเลือกช่องก่อนคนร้าย เมื่อคนร้ายกดเลือกห้องทีหลัง ให้คำนวณอัปเดตผลให้พยานทันที
                 let killerTargetRoom = null;
                 aliveIds.forEach(id => {
                     if (players[id].role === "Killer" && nightActions[id]?.target) {
@@ -556,14 +546,15 @@
                         
                         const clueText = `คืนที่ ${nightNum}: ผลตรวจพยาน (ชั้นอ้างอิง ${refFloor}): เป้าหมายที่คนร้ายเลือก ${hint}`;
                         if (!p.clues) p.clues = [];
-                        // ป้องกันการบันทึกข้อความซ้ำซ้อนถ้าบันทึกไปแล้ว
                         if (!p.clues.includes(clueText)) {
                             p.clues.push(clueText);
                         }
                     }
                 });
 
-                const allSubmitted = aliveIds.every(id => nightActions[id] !== undefined);
+                // ตรวจสอบว่าผู้เล่นบทบาทอื่นๆ เข้านอนหรือทำแอคชั่นครบหรือยัง (คนเมา ไม่บังคับแอคชั่นกลางคืนถ้าเลือกอยู่ห้องเดิม)
+                const requiredActionIds = aliveIds.filter(id => players[id].role !== "Drunk");
+                const allSubmitted = requiredActionIds.every(id => nightActions[id] !== undefined);
                 if (!allSubmitted) return data;
 
                 let lockedRoom = null;
@@ -595,6 +586,17 @@
                 data.status = "DAY";
                 data.nightActions = null;
 
+                // เช็คเงื่อนไขคนร้ายชนะหลังจบกลางคืน
+                const alivePlayersList = Object.keys(players).filter(id => players[id].isAlive);
+                const killerCount = alivePlayersList.filter(id => players[id].role === "Killer" || players[id].role === "Accomplice").length;
+                const goodCount = alivePlayersList.length - killerCount;
+
+                if (killerCount >= goodCount && killerCount > 0) {
+                    data.status = "ENDED";
+                    data.winner = "KILLER";
+                    data.endMessage = "🗡️ ฝั่งคนร้ายมีจำนวนเท่ากับหรือมากกว่าฝั่งคนดี! ฝั่งคนร้ายชนะเกมนี้!";
+                }
+
                 return data;
             });
         }
@@ -614,13 +616,48 @@
             if (data.status === "NIGHT") {
                 const nightActions = data.nightActions || {};
                 const myAction = nightActions[playerId];
-                const submittedCount = aliveIds.filter(id => nightActions[id]).length;
+                const submittedCount = aliveIds.filter(id => nightActions[id] || players[id].role === "Drunk").length;
 
                 actionTitle.textContent = `🌙 ภารกิจคืนที่ ${data.nightCount || 1}`;
                 actionProgress.textContent = `ดำเนินการแล้ว ${submittedCount}/${aliveIds.length} คน`;
 
+                // กรณีบทบาทคนเมา ที่สามารถเลือกย้ายห้องได้ทุกคืน
+                if (me.role === "Drunk") {
+                    if (isDrunkMovingRoom) {
+                        actionDesc.textContent = "🍻 โหมดเลือกห้องใหม่: กรุณาแตะเลือกหมายเลขห้องใหม่จากแผนผังโรงแรมด้านล่าง";
+                        const cancelBtn = document.createElement("button");
+                        cancelBtn.className = "w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-2 rounded-xl text-xs mt-2 transition";
+                        cancelBtn.textContent = "ยกเลิก (พักอยู่ห้องเดิม)";
+                        cancelBtn.onclick = () => {
+                            isDrunkMovingRoom = false;
+                            renderRoleActionPanel(data, me);
+                        };
+                        customActionControls.appendChild(cancelBtn);
+                        return;
+                    }
+
+                    actionDesc.textContent = "🍻 คุณคือคนเมา สามารถเลือกพักห้องเดิมหรือย้ายไปห้องอื่นในคืนนี้ได้";
+                    const moveBtn = document.createElement("button");
+                    moveBtn.className = "w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2.5 rounded-xl text-xs transition shadow mb-2";
+                    moveBtn.textContent = "🍻 ย้ายไปนอนห้องอื่นคืนนี้";
+                    moveBtn.onclick = () => {
+                        isDrunkMovingRoom = true;
+                        renderRoleActionPanel(data, me);
+                    };
+                    customActionControls.appendChild(moveBtn);
+
+                    const sleepBtn = document.createElement("button");
+                    sleepBtn.className = "w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2 rounded-xl text-xs transition";
+                    sleepBtn.textContent = "💤 นอนพักห้องเดิมต่อ";
+                    sleepBtn.onclick = () => {
+                        openConfirmModal("ยืนยันห้องเดิม", "ยืนยันนอนพักห้องเดิมในคืนนี้ใช่หรือไม่?", "💤", { type: "SLEEP", target: null, label: "นอนห้องเดิม" });
+                    };
+                    customActionControls.appendChild(sleepBtn);
+                    return;
+                }
+
                 if (myAction) {
-                    actionDesc.innerHTML = `<span class="text-emerald-400 font-bold">✅ คุณได้ปฏิบัติภารกิจคืนนี้เรียบร้อยแล้ว (${myAction.label})</span><br>สามารถดูผลลัพธ์ย้อนหลังได้ที่กล่องบันทึกเบาะสด้านบน`;
+                    actionDesc.innerHTML = `<span class="text-emerald-400 font-bold">✅ คุณได้ปฏิบัติภารกิจคืนนี้เรียบร้อยแล้ว (${myAction.label})</span>`;
                     return;
                 }
 
@@ -643,16 +680,7 @@
                         btn.className = "bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-200 font-bold py-2 rounded-xl text-xs border border-slate-700 transition";
                         btn.textContent = `ชั้น ${f}`;
                         btn.onclick = () => {
-                            const actionTitleText = role === "Witness" ? "ยืนยันการเป็นพยาน" : "ยืนยันการตรวจสอบ";
-                            const actionDescText = role === "Witness" 
-                                ? `ยืนยันเฝ้าสังเกตการณ์ <b>ชั้นที่ ${f}</b> ใช่หรือไม่? (รู้ผลทันทีเมื่อคนร้ายเลือกห้อง)` 
-                                : `ยืนยันตรวจสอบ <b>ชั้นที่ ${f}</b> ใช่หรือไม่? (รู้ผลทันที)`;
-                            openConfirmModal(
-                                actionTitleText,
-                                actionDescText,
-                                role === "Witness" ? "👁️" : "🔍",
-                                { type: "FLOOR", target: f, label: `ชั้น ${f}` }
-                            );
+                            openConfirmModal("ยืนยันตรวจสอบ", `ยืนยันตรวจสอบ <b>ชั้นที่ ${f}</b> ใช่หรือไม่?`, "🔍", { type: "FLOOR", target: f, label: `ชั้น ${f}` });
                         };
                         grid.appendChild(btn);
                     }
@@ -666,12 +694,7 @@
                         btn.className = "bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-200 font-bold py-2.5 rounded-xl text-xs border border-slate-700 transition";
                         btn.textContent = `แถวห้อง ${col}`;
                         btn.onclick = () => {
-                            openConfirmModal(
-                                "ยืนยันสแกนแนวตั้ง",
-                                `ยืนยันสแกนแนวตั้ง <b>คอลัมน์ห้อง ${col}</b> ใช่หรือไม่? (รู้ผลทันที)`,
-                                "🪟",
-                                { type: "COLUMN", target: col, label: `คอลัมน์ ${col}` }
-                            );
+                            openConfirmModal("ยืนยันสแกนแนวตั้ง", `ยืนยันสแกนแนวตั้ง <b>คอลัมน์ห้อง ${col}</b> ใช่หรือไม่?`, "🪟", { type: "COLUMN", target: col, label: `คอลัมน์ ${col}` });
                         };
                         grid.appendChild(btn);
                     });
@@ -687,12 +710,7 @@
                         btn.className = "bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-200 font-semibold py-2 px-3 rounded-xl text-xs border border-slate-700 transition truncate";
                         btn.textContent = `👤 ${targetP.name}`;
                         btn.onclick = () => {
-                            openConfirmModal(
-                                "ยืนยันการสะกดรอย",
-                                `ยืนยันสืบหาชั้นที่ <b>${targetP.name}</b> พักอยู่ใช่หรือไม่?`,
-                                "👥",
-                                { type: "PLAYER", target: targetId, label: `สืบ ${targetP.name}` }
-                            );
+                            openConfirmModal("ยืนยันการสะกดรอย", `ยืนยันสืบหาชั้นที่ <b>${targetP.name}</b> พักอยู่ใช่หรือไม่?`, "👥", { type: "PLAYER", target: targetId, label: `สืบ ${targetP.name}` });
                         };
                         grid.appendChild(btn);
                     });
@@ -701,14 +719,9 @@
                 else {
                     const sleepBtn = document.createElement("button");
                     sleepBtn.className = "w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-xs transition shadow";
-                    sleepBtn.textContent = "💤 เข้านอน (ยืนยันจบเทิร์นกลางคืน)";
+                    sleepBtn.textContent = "💤 เข้านอน";
                     sleepBtn.onclick = () => {
-                        openConfirmModal(
-                            "ยืนยันการเข้านอน",
-                            "ยืนยันเข้านอนและรอเช้าวันใหม่ใช่หรือไม่?",
-                            "💤",
-                            { type: "SLEEP", target: null, label: "เข้านอน" }
-                        );
+                        openConfirmModal("ยืนยันเข้านอน", "ยืนยันเข้านอนและรอเช้าวันใหม่ใช่หรือไม่?", "💤", { type: "SLEEP", target: null, label: "เข้านอน" });
                     };
                     customActionControls.appendChild(sleepBtn);
                 }
@@ -737,6 +750,7 @@
 
             const role = me.role;
             const canClickMapInSetup = gameStatusState === "SETUP" && !me.isReadySetup;
+            const canClickMapInDrunkMove = gameStatusState === "NIGHT" && role === "Drunk" && isDrunkMovingRoom;
             const canClickMapInNight = gameStatusState === "NIGHT" && me.isAlive && 
                 (role === "Killer" || role === "Locksmith") &&
                 !(data.nightActions && data.nightActions[playerId]);
@@ -744,7 +758,7 @@
             const canClickMapInDay = gameStatusState === "DAY" && me.isAlive &&
                 !(data.dayVotes && data.dayVotes[playerId]);
 
-            const isMapInteractive = canClickMapInSetup || canClickMapInNight || canClickMapInDay;
+            const isMapInteractive = canClickMapInSetup || canClickMapInDrunkMove || canClickMapInNight || canClickMapInDay;
 
             for (let floor = 9; floor >= 1; floor--) {
                 const floorRow = document.createElement("div");
@@ -783,22 +797,12 @@
                             btnStyle += "hover:bg-amber-500 hover:text-slate-950 cursor-pointer";
                             roomBtn.onclick = () => {
                                 if (gameStatusState === "SETUP") {
-                                    openConfirmModal(
-                                        "ยืนยันห้องพักของคุณ",
-                                        `ยืนยันเลือกเข้าพักที่ <b>ห้อง ${roomCodeStr}</b> ใช่หรือไม่?`,
-                                        "🏨",
-                                        { type: "SETUP_ROOM", target: roomCodeStr, label: `ห้อง ${roomCodeStr}` }
-                                    );
+                                    openConfirmModal("ยืนยันห้องพักของคุณ", `ยืนยันเลือกเข้าพักที่ <b>ห้อง ${roomCodeStr}</b> ใช่หรือไม่?`, "🏨", { type: "SETUP_ROOM", target: roomCodeStr, label: `ห้อง ${roomCodeStr}` });
+                                } else if (canClickMapInDrunkMove) {
+                                    openConfirmModal("ยืนยันย้ายห้อง", `ยืนยันย้ายไปพักที่ <b>ห้อง ${roomCodeStr}</b> คืนนี้ใช่หรือไม่?`, "🍻", { type: "DRUNK_MOVE", target: roomCodeStr, label: `ห้อง ${roomCodeStr}` });
                                 } else {
-                                    const actionWord = gameStatusState === "NIGHT" 
-                                        ? (role === "Killer" ? "บุกสังหาร" : "ล็อกป้องกัน")
-                                        : "โหวตเปิดโปง";
-                                    openConfirmModal(
-                                        "ยืนยันการกระทำ",
-                                        `ยืนยันเลือก <b>${actionWord}ห้อง ${roomCodeStr}</b> ใช่หรือไม่?`,
-                                        "🎯",
-                                        { type: "ROOM", target: roomCodeStr, label: `ห้อง ${roomCodeStr}` }
-                                    );
+                                    const actionWord = gameStatusState === "NIGHT" ? (role === "Killer" ? "บุกสังหาร" : "ล็อกป้องกัน") : "โหวตเปิดโปง";
+                                    openConfirmModal("ยืนยันการกระทำ", `ยืนยันเลือก <b>${actionWord}ห้อง ${roomCodeStr}</b> ใช่หรือไม่?`, "🎯", { type: "ROOM", target: roomCodeStr, label: `ห้อง ${roomCodeStr}` });
                                 }
                             };
                         } else {
@@ -819,7 +823,7 @@
             if (gameStatusState === "WAITING") {
                 mapStatusHint.textContent = `เปิดใช้งานชั้น 1 - ${maxActiveFloor}`;
                 mapStatusHint.className = "text-xs text-amber-400/80 bg-amber-400/10 px-2.5 py-0.5 rounded border border-amber-400/20";
-            } else if (gameStatusState === "SETUP") {
+            } else if (gameStatusState === "SETUP" || canClickMapInDrunkMove) {
                 mapStatusHint.textContent = `👆 แตะเลือกห้องพักของคุณบนแผนผัง`;
                 mapStatusHint.className = "text-xs text-sky-400 bg-sky-400/10 px-2.5 py-0.5 rounded border border-sky-400/20 animate-pulse";
             } else if (isMapInteractive) {
@@ -867,9 +871,20 @@
             }
 
             const currentStatus = data.status || "WAITING";
-            nightCounter.textContent = (currentStatus === "WAITING" || currentStatus === "SETUP") ? "ห้องเตรียมพร้อม" : `คืนที่ ${data.nightCount || 1}`;
+            nightCounter.textContent = (currentStatus === "WAITING" || currentStatus === "SETUP") ? "ห้องเตรียมพร้อม" : `คืนที่ ${data.nightCount || 1}/3`;
 
-            if (currentStatus === "WAITING") {
+            if (currentStatus === "ENDED") {
+                gameStatus.textContent = "🏁 จบเกมแล้ว";
+                gameStatus.className = "font-bold text-rose-500 bg-rose-500/10 px-3 py-1 rounded-full border border-rose-500/20";
+                Swal.fire({
+                    icon: 'success',
+                    title: 'ประกาศผลแพ้ชนะ',
+                    html: `<b class="text-amber-400 text-lg">${data.endMessage}</b>`,
+                    confirmButtonText: 'รับทราบ',
+                    background: '#0f172a',
+                    color: '#f8fafc'
+                });
+            } else if (currentStatus === "WAITING") {
                 gameStatus.textContent = "กำลังรอผู้เล่น...";
                 gameStatus.className = "font-bold text-amber-500 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20";
             } else if (currentStatus === "SETUP") {
@@ -899,11 +914,18 @@
                 if (currentStatus === "WAITING") {
                     hostControls.classList.remove("hidden");
                     startGameBtn.classList.remove("hidden");
+                    resolveVoteBtn.classList.add("hidden");
                     nextNightBtn.classList.add("hidden");
                 } else if (currentStatus === "DAY") {
                     hostControls.classList.remove("hidden");
                     startGameBtn.classList.add("hidden");
-                    nextNightBtn.classList.remove("hidden");
+                    resolveVoteBtn.classList.remove("hidden");
+                    nextNightBtn.classList.add("hidden");
+                } else if (currentStatus === "NIGHT") {
+                    hostControls.classList.remove("hidden");
+                    startGameBtn.classList.add("hidden");
+                    resolveVoteBtn.classList.add("hidden");
+                    nextNightBtn.classList.add("hidden");
                 } else {
                     hostControls.classList.add("hidden");
                 }
@@ -997,14 +1019,6 @@
 
         }, (error) => {
             console.error("Firebase Error:", error);
-            Swal.fire({
-                icon: 'error',
-                title: 'ไม่สามารถโหลดข้อมูลห้องได้',
-                text: error.message,
-                confirmButtonColor: '#f59e0b',
-                background: '#0f172a',
-                color: '#f8fafc'
-            });
         });
 
         function shuffle(array) {
@@ -1036,27 +1050,21 @@
                         });
                     } catch (error) {
                         console.error(error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'เกิดข้อผิดพลาด',
-                            text: error.message,
-                            background: '#0f172a',
-                            color: '#f8fafc'
-                        });
                     }
                 }
             });
         };
 
-        nextNightBtn.onclick = async () => {
+        // Host สรุปผลโหวตประจำวัน ประหารชีวิตผู้เล่น และเช็คเงื่อนไขชนะทันที
+        resolveVoteBtn.onclick = async () => {
             Swal.fire({
-                title: 'เข้าสู่คืนถัดไป?',
-                text: "ต้องการจบช่วงเช้าและสุ่มย้ายห้องพักใหม่หรือไม่?",
-                icon: 'question',
+                title: 'สรุปผลโหวตและประหาร?',
+                text: "ระบบจะนับคะแนนโหวตสูงสุดเพื่อประหารผู้เล่นห้องนั้น",
+                icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#6366f1',
+                confirmButtonColor: '#e11d48',
                 cancelButtonColor: '#64748b',
-                confirmButtonText: 'ใช่, ไปคืนถัดไป',
+                confirmButtonText: 'ยืนยันประหาร',
                 cancelButtonText: 'ยกเลิก',
                 background: '#0f172a',
                 color: '#f8fafc'
@@ -1065,24 +1073,66 @@
                     try {
                         await runTransaction(roomRef, (data) => {
                             if (!data || data.status !== "DAY") return;
-                            const maxPlayers = data.maxPlayers || 6;
-                            data.players = assignRandomRooms(data.players || {}, maxPlayers);
-                            data.status = "NIGHT";
-                            data.nightCount = (data.nightCount || 1) + 1;
-                            data.nightActions = null;
-                            data.dayVotes = null;
-                            data.morningNews = null;
+                            const dayVotes = data.dayVotes || {};
+                            const players = data.players || {};
+
+                            // นับคะแนนโหวตแต่ละห้อง
+                            const voteCounts = {};
+                            Object.keys(dayVotes).forEach(pid => {
+                                const targetRoom = dayVotes[pid].target;
+                                voteCounts[targetRoom] = (voteCounts[targetRoom] || 0) + 1;
+                            });
+
+                            let highestRoom = null;
+                            let maxVotes = 0;
+                            Object.keys(voteCounts).forEach(room => {
+                                if (voteCounts[room] > maxVotes) {
+                                    maxVotes = voteCounts[room];
+                                    highestRoom = room;
+                                }
+                            });
+
+                            let executionMsg = "";
+                            if (highestRoom) {
+                                const executedPlayerId = Object.keys(players).find(pid => players[pid].isAlive && players[pid].currentRoom === highestRoom);
+                                if (executedPlayerId) {
+                                    players[executedPlayerId].isAlive = false;
+                                    const executedPlayer = players[executedPlayerId];
+                                    executionMsg = `ผลโหวตสูงสุดตกที่ห้อง ${highestRoom}! ถูกโหวตประหารชีวิตผู้เล่น "${executedPlayer.name}" (${ROLE_NAMES_TH[executedPlayer.role] || executedPlayer.role})`;
+
+                                    // 🍻 เงื่อนไขคนเมา ชนะคนเดียวทันทีถ้าโดนโหวตออก!
+                                    if (executedPlayer.role === "Drunk") {
+                                        data.status = "ENDED";
+                                        data.winner = "DRUNK";
+                                        data.endMessage = `🍻 ผู้เล่น "${executedPlayer.name}" คือคนเมาที่ถูกโหวตประหารสำเร็จ! คนเมา ชนะเกมนี้คนเดียวเด็ดขาด!`;
+                                        data.morningNews = executionMsg + " | " + data.endMessage;
+                                        data.players = players;
+                                        return data;
+                                    }
+                                } else {
+                                    executionMsg = `ผลโหวตสูงสุดตกที่ห้อง ${highestRoom} แต่ห้องนั้นไม่มีใครพักอยู่ ไม่มีใครถูกประหาร`;
+                                }
+                            } else {
+                                executionMsg = `ไม่มีการโหวตใดๆ เกิดขึ้นในวันนี้`;
+                            }
+
+                            // เช็คว่าเล่นครบ 3 เทิร์นหรือยัง
+                            const currentNight = data.nightCount || 1;
+                            if (currentNight >= 3) {
+                                data.status = "ENDED";
+                                data.winner = "TIMEOUT";
+                                data.endMessage = `⌛ ครบกำหนด 3 เทิร์นแล้ว! เกมจบลง`;
+                            } else {
+                                // เปิดปุ่มให้ Host ไปคืนถัดไป
+                                data.morningNews = executionMsg;
+                                data.status = "DAY_RESOLVED"; // สถานะคั่นระหว่างรอ Host กดไปคืนถัดไป
+                            }
+
+                            data.players = players;
                             return data;
                         });
                     } catch (error) {
                         console.error(error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'เกิดข้อผิดพลาด',
-                            text: error.message,
-                            background: '#0f172a',
-                            color: '#f8fafc'
-                        });
                     }
                 }
             });
