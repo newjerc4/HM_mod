@@ -29,7 +29,7 @@
             </div>
         </div>
 
-        <!-- ประกาศข่าวประจำวัน (แสดงตอนเช้า) -->
+        <!-- ประกาศข่าวประจำวัน -->
         <div id="morningNewsBox" class="hidden bg-rose-950/40 border border-rose-500/40 p-4 rounded-2xl space-y-1 shadow-xl">
             <h3 class="text-sm font-bold text-rose-400 flex items-center gap-2">
                 <span>📰</span> สรุปเหตุการณ์เมื่อคืน (ข่าวด่วนประจำเช้านี้)
@@ -55,7 +55,6 @@
                 <p>สถานะ: <b id="myStatus" class="text-emerald-400">มีชีวิต 🟢</b></p>
             </div>
 
-            <!-- กล่องแสดงผลลัพธ์เบาะแสจากการใช้สกิล -->
             <div id="privateClueBox" class="hidden mt-3 pt-3 border-t border-slate-800">
                 <span class="text-xs font-bold text-sky-400 block mb-1">🔍 บันทึกเบาะแสส่วนตัวของคุณ:</span>
                 <div id="privateClueList" class="space-y-1.5 text-xs text-slate-200 bg-slate-950/80 p-3 rounded-xl border border-sky-500/30">
@@ -77,18 +76,18 @@
         <!-- Host Controls -->
         <div id="hostControls" class="hidden bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3 shadow-xl">
             <h3 class="text-sm font-bold text-amber-400 flex items-center gap-2">
-                <span>👑</span> เมนู Host (ผู้สร้างห้อง)
+                <span>👑</span> เมนู Host (ผู้ดำเนินรายการ)
             </h3>
             <button id="startGameBtn"
                 class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2.5 rounded-xl transition shadow-lg shadow-amber-500/10 text-sm">
-                เริ่มเกม (แจกบทบาท)
+                เริ่มเกม (ให้ผู้เล่นเลือกบทบาทและห้องพัก)
             </button>
             <button id="nextNightBtn"
                 class="hidden w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2.5 rounded-xl transition shadow-lg text-sm">
-                🌙 เข้าสู่คืนถัดไป (สุ่มห้องพักใหม่)
+                🌙 เข้าสู่คืนถัดไป (สุ่มย้ายห้องพักใหม่)
             </button>
             <p id="hostHintText" class="text-slate-400 text-xs text-center">
-                ต้องมีผู้เล่นครบตามจำนวนที่กำหนดจึงจะเริ่มได้
+                เมื่อผู้เล่นทุกคนเลือกบทบาทและห้องพักบนแผนผังครบแล้ว เกมจะเริ่มอัตโนมัติ
             </p>
         </div>
 
@@ -127,11 +126,11 @@
 
     </div>
 
-    <!-- Modal ยืนยันการเลือก (Two-step Selection) -->
+    <!-- Modal ยืนยันการเลือกแอคชั่น / เลือกห้องตอน Setup -->
     <div id="confirmModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
         <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-sm w-full space-y-4 shadow-2xl text-center">
-            <div class="text-4xl">🎯</div>
-            <h3 class="text-lg font-bold text-slate-100">ยืนยันการตัดสินใจ</h3>
+            <div class="text-4xl" id="confirmModalIcon">🎯</div>
+            <h3 class="text-lg font-bold text-slate-100" id="confirmModalTitle">ยืนยันการตัดสินใจ</h3>
             <p id="confirmModalDesc" class="text-sm text-slate-300">คุณต้องการยืนยันตัวเลือกนี้ใช่หรือไม่?</p>
             <div class="flex space-x-3 pt-2">
                 <button onclick="closeConfirmModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-2.5 rounded-xl transition text-sm">
@@ -144,7 +143,7 @@
         </div>
     </div>
 
-    <!-- Modal แจ้งผลลัพธ์ทันที (Instant Result Modal) -->
+    <!-- Modal แจ้งผลลัพธ์ทันที -->
     <div id="resultModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
         <div class="bg-slate-900 border border-sky-500/40 p-6 rounded-2xl max-w-sm w-full space-y-4 shadow-2xl text-center">
             <div class="text-4xl">🔍</div>
@@ -152,6 +151,35 @@
             <p id="resultModalText" class="text-sm text-slate-200 leading-relaxed bg-slate-950/70 p-3 rounded-xl border border-slate-800">-</p>
             <button onclick="closeResultModal()" class="w-full bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold py-2.5 rounded-xl transition text-sm shadow-lg shadow-sky-500/20">
                 รับทราบ
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal ขั้นตอนที่ 1: เลือกบทบาทหลังเริ่มเกม -->
+    <div id="setupRoleModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-amber-500/50 p-6 rounded-2xl max-w-sm w-full space-y-4 shadow-2xl text-center">
+            <div class="text-3xl">🎭</div>
+            <h3 class="text-lg font-bold text-amber-400">เลือกบทบาทของคุณ</h3>
+            <p class="text-xs text-slate-300">เลือกบทบาทที่คุณได้รับจากการจับสลากในวง</p>
+            
+            <div class="text-left pt-2">
+                <label class="block text-xs font-medium text-slate-400 mb-1">บทบาทที่ได้รับ</label>
+                <select id="setupRoleSelect" 
+                    class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-3 text-white text-xs focus:outline-none focus:border-amber-400">
+                    <option value="Innocent">👤 ชาวบ้าน (Innocent)</option>
+                    <option value="Killer">🗡️ คนร้าย (Killer)</option>
+                    <option value="Accomplice">🤝 ผู้ช่วยคนร้าย (Accomplice)</option>
+                    <option value="Locksmith">🔑 ช่างทำกุญแจ (Locksmith)</option>
+                    <option value="Housekeeper">🧹 แม่บ้าน (Floor Scanner)</option>
+                    <option value="GlassCleaner">🪟 ช่างเช็ดกระจก (Column Scanner)</option>
+                    <option value="Detective">🔍 นักสืบ (Player Tracker)</option>
+                    <option value="Witness">👁️ พยาน (Higher/Lower Sensor)</option>
+                </select>
+            </div>
+
+            <button onclick="submitSetupRole()" 
+                class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3 rounded-xl transition text-sm shadow-lg shadow-amber-500/20 mt-2">
+                ยืนยันบทบาท (ไปเลือกห้องพักต่อ)
             </button>
         </div>
     </div>
@@ -217,7 +245,6 @@
 
         const roomRef = ref(db, `rooms/${roomCode}`);
 
-        // DOM Elements
         const displayRoomCode = document.getElementById("displayRoomCode");
         const nightCounter = document.getElementById("nightCounter");
         const gameStatus = document.getElementById("gameStatus");
@@ -240,7 +267,6 @@
         const hostControls = document.getElementById("hostControls");
         const startGameBtn = document.getElementById("startGameBtn");
         const nextNightBtn = document.getElementById("nextNightBtn");
-        const hostHintText = document.getElementById("hostHintText");
 
         const hotelMapContainer = document.getElementById("hotelMapContainer");
         const mapStatusHint = document.getElementById("mapStatusHint");
@@ -248,10 +274,13 @@
         const playerCount = document.getElementById("playerCount");
 
         const confirmModal = document.getElementById("confirmModal");
+        const confirmModalIcon = document.getElementById("confirmModalIcon");
+        const confirmModalTitle = document.getElementById("confirmModalTitle");
         const confirmModalDesc = document.getElementById("confirmModalDesc");
-        
+
         const resultModal = document.getElementById("resultModal");
         const resultModalText = document.getElementById("resultModalText");
+        const setupRoleModal = document.getElementById("setupRoleModal");
 
         displayRoomCode.textContent = roomCode;
         myName.textContent = playerName;
@@ -287,15 +316,17 @@
             return playersObj;
         }
 
-        window.openConfirmModal = function(descText, payload) {
+        window.openConfirmModal = function(title, descText, icon, payload) {
             pendingActionPayload = payload;
+            confirmModalIcon.textContent = icon || "🎯";
+            confirmModalTitle.textContent = title || "ยืนยันการตัดสินใจ";
             confirmModalDesc.innerHTML = descText;
             confirmModal.classList.remove("hidden");
             confirmModal.classList.add("flex");
         };
 
         window.closeConfirmModal = function() {
-            confirmModal.classList.remove("hidden");
+            confirmModal.classList.remove("flex");
             confirmModal.classList.add("hidden");
             pendingActionPayload = null;
         };
@@ -311,20 +342,58 @@
             resultModal.classList.add("hidden");
         };
 
-        // กดยืนยันคำสั่ง และประมวลผลผลลัพธ์ทันที
+        // ขั้นตอนที่ 1: บันทึก Role ที่เลือก แล้วเปิดทางให้ไปเลือกห้องบนแผนผังต่อ
+        window.submitSetupRole = async function() {
+            const selectedRole = document.getElementById("setupRoleSelect").value;
+
+            try {
+                await update(ref(db, `rooms/${roomCode}/players/${playerId}`), {
+                    role: selectedRole
+                });
+
+                setupRoleModal.classList.remove("flex");
+                setupRoleModal.classList.add("hidden");
+                
+                alert("บันทึกบทบาทเรียบร้อย! กรุณากดเลือกหมายเลขห้องพักของคุณจากแผนผังโรงแรมด้านล่าง");
+            } catch (error) {
+                console.error("Setup Role Error:", error);
+                alert("เกิดข้อผิดพลาด: " + error.message);
+            }
+        };
+
+        // ปุ่มยืนยันส่วนกลางสำหรับ Modal (รองรับทั้ง Setup เลือกห้อง และ Night/Day Action)
         window.submitConfirmedAction = async function() {
             if (!pendingActionPayload || !currentRoomData) return;
 
             const payload = pendingActionPayload;
             closeConfirmModal();
 
+            const currentStatus = currentRoomData.status;
+
+            // ถ้าอยู่ในช่วง SETUP (เลือกห้องพัก)
+            if (currentStatus === "SETUP") {
+                try {
+                    await update(ref(db, `rooms/${roomCode}/players/${playerId}`), {
+                        currentRoom: payload.target,
+                        isReadySetup: true
+                    });
+
+                    alert(`🏠 บันทึกห้องพัก ${payload.target} สำเร็จ! รอผู้เล่นคนอื่นให้ครบ...`);
+                    await checkAllPlayersReady();
+                } catch (error) {
+                    console.error("Setup Room Error:", error);
+                    alert("เกิดข้อผิดพลาด: " + error.message);
+                }
+                return;
+            }
+
+            // ถ้าอยู่ในช่วง NIGHT หรือ DAY ปกติ
             const nightNum = currentRoomData.nightCount || 1;
             const players = currentRoomData.players || {};
             const me = players[playerId];
             let resultMessage = "";
 
-            // คำนวณผลลัพธ์ทันทีตามบทบาท
-            if (currentRoomData.status === "NIGHT") {
+            if (currentStatus === "NIGHT") {
                 if (me.role === "Housekeeper" && payload.type === "FLOOR") {
                     const targetFloor = parseInt(payload.target);
                     const count = Object.keys(players).filter(pid => {
@@ -358,25 +427,20 @@
                     resultMessage = `✅ บันทึกคำสั่งสำเร็จ (${payload.label})`;
                 }
 
-                // บันทึกคำสั่งและเบาะแสลง Firebase ทันที
                 if (!me.clues) me.clues = [];
                 me.clues.push(`คืนที่ ${nightNum}: ${resultMessage}`);
 
                 try {
                     await set(ref(db, `rooms/${roomCode}/nightActions/${playerId}`), payload);
                     await update(ref(db, `rooms/${roomCode}/players/${playerId}`), { clues: me.clues });
-                    
-                    // เด้ง Modal โชว์ผลลัพธ์ทันที
                     openResultModal(resultMessage);
-                    
-                    // เช็คว่าทุกคนส่งครบหรือยังเพื่อประมวลผลเช้าวันใหม่
                     await checkAndResolveNight();
                 } catch (error) {
                     console.error("Action Error:", error);
                     alert("เกิดข้อผิดพลาด: " + error.message);
                 }
             } 
-            else if (currentRoomData.status === "DAY") {
+            else if (currentStatus === "DAY") {
                 try {
                     await set(ref(db, `rooms/${roomCode}/dayVotes/${playerId}`), payload);
                     alert(`🗳️ คุณได้โหวต ${payload.label} เรียบร้อยแล้ว`);
@@ -385,6 +449,22 @@
                 }
             }
         };
+
+        async function checkAllPlayersReady() {
+            await runTransaction(roomRef, (data) => {
+                if (!data || data.status !== "SETUP") return;
+
+                const players = data.players || {};
+                const aliveIds = Object.keys(players).filter(id => players[id].isAlive);
+                const allReady = aliveIds.every(id => players[id].isReadySetup === true && players[id].role);
+
+                if (allReady) {
+                    data.status = "NIGHT";
+                    data.nightCount = 1;
+                }
+                return data;
+            });
+        }
 
         async function checkAndResolveNight() {
             await runTransaction(roomRef, (data) => {
@@ -395,9 +475,8 @@
                 const aliveIds = Object.keys(players).filter(id => players[id].isAlive);
 
                 const allSubmitted = aliveIds.every(id => nightActions[id] !== undefined);
-                if (!allSubmitted) return; // ยังไม่ครบ รอคนอื่น
+                if (!allSubmitted) return;
 
-                // ประมวลผล ช่างกุญแจ และ คนร้าย
                 let lockedRoom = null;
                 aliveIds.forEach(id => {
                     if (players[id].role === "Locksmith" && nightActions[id]?.target) {
@@ -412,7 +491,6 @@
                     }
                 });
 
-                // อัปเดตเบาะแสให้พยานเพิ่มเติมตอนเช้า
                 const nightNum = data.nightCount || 1;
                 aliveIds.forEach(id => {
                     const p = players[id];
@@ -456,7 +534,7 @@
         }
 
         function renderRoleActionPanel(data, me) {
-            if (!me.isAlive || data.status === "WAITING") {
+            if (!me.isAlive || data.status === "WAITING" || data.status === "SETUP") {
                 roleActionPanel.classList.add("hidden");
                 return;
             }
@@ -500,7 +578,9 @@
                         btn.textContent = `ชั้น ${f}`;
                         btn.onclick = () => {
                             openConfirmModal(
+                                "ยืนยันการตรวจสอบ",
                                 `ยืนยันตรวจสอบ <b>ชั้นที่ ${f}</b> ใช่หรือไม่? (รู้ผลทันที)`,
+                                "🔍",
                                 { type: "FLOOR", target: f, label: `ชั้น ${f}` }
                             );
                         };
@@ -517,7 +597,9 @@
                         btn.textContent = `แถวห้อง ${col}`;
                         btn.onclick = () => {
                             openConfirmModal(
+                                "ยืนยันสแกนแนวตั้ง",
                                 `ยืนยันสแกนแนวตั้ง <b>คอลัมน์ห้อง ${col}</b> ใช่หรือไม่? (รู้ผลทันที)`,
+                                "🪟",
                                 { type: "COLUMN", target: col, label: `คอลัมน์ ${col}` }
                             );
                         };
@@ -526,7 +608,6 @@
                     customActionControls.appendChild(grid);
                 }
                 else if (role === "Detective" || role === "Accomplice") {
-                    const roleTitle = role === "Detective" ? "นักสืบ" : "ผู้ช่วย";
                     const grid = document.createElement("div");
                     grid.className = "grid grid-cols-2 gap-2";
                     aliveIds.forEach(targetId => {
@@ -537,7 +618,9 @@
                         btn.textContent = `👤 ${targetP.name}`;
                         btn.onclick = () => {
                             openConfirmModal(
+                                "ยืนยันการสะกดรอย",
                                 `ยืนยันสืบหาชั้นที่ <b>${targetP.name}</b> พักอยู่ใช่หรือไม่?`,
+                                "👥",
                                 { type: "PLAYER", target: targetId, label: `สืบ ${targetP.name}` }
                             );
                         };
@@ -551,7 +634,9 @@
                     sleepBtn.textContent = "💤 เข้านอน (ยืนยันจบเทิร์นกลางคืน)";
                     sleepBtn.onclick = () => {
                         openConfirmModal(
+                            "ยืนยันการเข้านอน",
                             "ยืนยันเข้านอนและรอเช้าวันใหม่ใช่หรือไม่?",
+                            "💤",
                             { type: "SLEEP", target: null, label: "เข้านอน" }
                         );
                     };
@@ -581,6 +666,7 @@
             const maxActiveFloor = getMaxActiveFloor(maxPlayers);
 
             const role = me.role;
+            const canClickMapInSetup = gameStatusState === "SETUP" && !me.isReadySetup;
             const canClickMapInNight = gameStatusState === "NIGHT" && me.isAlive && 
                 (role === "Killer" || role === "Locksmith") &&
                 !(data.nightActions && data.nightActions[playerId]);
@@ -588,7 +674,7 @@
             const canClickMapInDay = gameStatusState === "DAY" && me.isAlive &&
                 !(data.dayVotes && data.dayVotes[playerId]);
 
-            const isMapInteractive = canClickMapInNight || canClickMapInDay;
+            const isMapInteractive = canClickMapInSetup || canClickMapInNight || canClickMapInDay;
 
             for (let floor = 9; floor >= 1; floor--) {
                 const floorRow = document.createElement("div");
@@ -614,7 +700,7 @@
                         const roomCodeStr = `${floor}0${roomNo}`;
                         const roomBtn = document.createElement("button");
 
-                        const isMyRoom = me.currentRoom === roomCodeStr && gameStatusState !== "WAITING";
+                        const isMyRoom = me.currentRoom === roomCodeStr && gameStatusState !== "WAITING" && gameStatusState !== "SETUP";
                         
                         let btnStyle = "flex-1 py-1.5 rounded-lg text-xs font-bold transition shadow-sm text-center border ";
                         if (isMyRoom) {
@@ -626,13 +712,24 @@
                         if (isMapInteractive) {
                             btnStyle += "hover:bg-amber-500 hover:text-slate-950 cursor-pointer";
                             roomBtn.onclick = () => {
-                                const actionWord = gameStatusState === "NIGHT" 
-                                    ? (role === "Killer" ? "บุกสังหาร" : "ล็อกป้องกัน")
-                                    : "โหวตเปิดโปง";
-                                openConfirmModal(
-                                    `ยืนยันเลือก <b>${actionWord}ห้อง ${roomCodeStr}</b> ใช่หรือไม่?`,
-                                    { type: "ROOM", target: roomCodeStr, label: `ห้อง ${roomCodeStr}` }
-                                );
+                                if (gameStatusState === "SETUP") {
+                                    openConfirmModal(
+                                        "ยืนยันห้องพักของคุณ",
+                                        `ยืนยันเลือกเข้าพักที่ <b>ห้อง ${roomCodeStr}</b> ใช่หรือไม่?`,
+                                        "🏨",
+                                        { type: "SETUP_ROOM", target: roomCodeStr, label: `ห้อง ${roomCodeStr}` }
+                                    );
+                                } else {
+                                    const actionWord = gameStatusState === "NIGHT" 
+                                        ? (role === "Killer" ? "บุกสังหาร" : "ล็อกป้องกัน")
+                                        : "โหวตเปิดโปง";
+                                    openConfirmModal(
+                                        "ยืนยันการกระทำ",
+                                        `ยืนยันเลือก <b>${actionWord}ห้อง ${roomCodeStr}</b> ใช่หรือไม่?`,
+                                        "🎯",
+                                        { type: "ROOM", target: roomCodeStr, label: `ห้อง ${roomCodeStr}` }
+                                    );
+                                }
                             };
                         } else {
                             btnStyle += "opacity-75 cursor-default";
@@ -652,6 +749,9 @@
             if (gameStatusState === "WAITING") {
                 mapStatusHint.textContent = `เปิดใช้งานชั้น 1 - ${maxActiveFloor}`;
                 mapStatusHint.className = "text-xs text-amber-400/80 bg-amber-400/10 px-2.5 py-0.5 rounded border border-amber-400/20";
+            } else if (gameStatusState === "SETUP") {
+                mapStatusHint.textContent = `👆 แตะเลือกห้องพักของคุณบนแผนผัง`;
+                mapStatusHint.className = "text-xs text-sky-400 bg-sky-400/10 px-2.5 py-0.5 rounded border border-sky-400/20 animate-pulse";
             } else if (isMapInteractive) {
                 mapStatusHint.textContent = `👆 แตะเลือกห้องบนแผนผัง`;
                 mapStatusHint.className = "text-xs text-emerald-400 bg-emerald-400/10 px-2.5 py-0.5 rounded border border-emerald-400/20 animate-pulse";
@@ -683,11 +783,20 @@
             }
 
             const currentStatus = data.status || "WAITING";
-            nightCounter.textContent = currentStatus === "WAITING" ? "ห้องรอเริ่มเกม" : `คืนที่ ${data.nightCount || 1}`;
+            nightCounter.textContent = (currentStatus === "WAITING" || currentStatus === "SETUP") ? "ห้องเตรียมพร้อม" : `คืนที่ ${data.nightCount || 1}`;
 
             if (currentStatus === "WAITING") {
                 gameStatus.textContent = "กำลังรอผู้เล่น...";
                 gameStatus.className = "font-bold text-amber-500 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20";
+            } else if (currentStatus === "SETUP") {
+                gameStatus.textContent = "⚙️ กำลังตั้งค่าตัวตน (Setup)";
+                gameStatus.className = "font-bold text-sky-400 bg-sky-500/10 px-3 py-1 rounded-full border border-sky-500/20";
+                
+                // ถ้ายังไม่ได้เลือก Role ให้เด้ง Modal ขั้นตอนที่ 1 ขึ้นมา
+                if (!me.role) {
+                    setupRoleModal.classList.remove("hidden");
+                    setupRoleModal.classList.add("flex");
+                }
             } else if (currentStatus === "NIGHT") {
                 gameStatus.textContent = "🌙 เฟสกลางคืน (Night)";
                 gameStatus.className = "font-bold text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-full border border-indigo-500/20";
@@ -708,12 +817,10 @@
                     hostControls.classList.remove("hidden");
                     startGameBtn.classList.remove("hidden");
                     nextNightBtn.classList.add("hidden");
-                    hostHintText.textContent = "ต้องมีผู้เล่นครบตามจำนวนที่กำหนดจึงจะเริ่มได้";
                 } else if (currentStatus === "DAY") {
                     hostControls.classList.remove("hidden");
                     startGameBtn.classList.add("hidden");
                     nextNightBtn.classList.remove("hidden");
-                    hostHintText.textContent = "เมื่ออภิปรายและโหวตเสร็จแล้ว กดเพื่อเข้าสู่คืนถัดไป";
                 } else {
                     hostControls.classList.add("hidden");
                 }
@@ -721,9 +828,14 @@
                 hostControls.classList.add("hidden");
             }
 
-            if (currentStatus === "WAITING") {
-                myRole.textContent = "รอเริ่มเกม";
-                myRoomBadge.classList.add("hidden");
+            if (currentStatus === "WAITING" || currentStatus === "SETUP") {
+                myRole.textContent = me.role ? ROLE_NAMES_TH[me.role] || me.role : "รอกรอกข้อมูล";
+                if (me.currentRoom) {
+                    myRoomBadge.textContent = `พักอยู่ห้อง: ${me.currentRoom}`;
+                    myRoomBadge.classList.remove("hidden");
+                } else {
+                    myRoomBadge.classList.add("hidden");
+                }
                 partnerInfo.classList.add("hidden");
             } else {
                 const roleKey = me.role;
@@ -771,12 +883,17 @@
 
                 const playerInfo = document.createElement("span");
                 playerInfo.className = player.isAlive ? "text-slate-200" : "text-slate-500 line-through";
-                playerInfo.textContent = player.name + (player.isHost ? " 👑" : "");
+                playerInfo.textContent = player.name + (player.isHost ? " 👑" : "") + (player.currentRoom ? ` [ห้อง ${player.currentRoom}]` : "");
 
                 const rightBox = document.createElement("div");
                 rightBox.className = "flex items-center gap-2";
 
-                if (currentStatus === "NIGHT" && player.isAlive && data.nightActions && data.nightActions[id]) {
+                if (currentStatus === "SETUP") {
+                    const readyBadge = document.createElement("span");
+                    readyBadge.className = player.isReadySetup ? "text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded" : "text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded";
+                    readyBadge.textContent = player.isReadySetup ? "เลือกห้องแล้ว" : "กำลังเลือกห้อง...";
+                    rightBox.appendChild(readyBadge);
+                } else if (currentStatus === "NIGHT" && player.isAlive && data.nightActions && data.nightActions[id]) {
                     const doneBadge = document.createElement("span");
                     doneBadge.className = "text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded";
                     doneBadge.textContent = "พร้อมแล้ว";
@@ -809,61 +926,22 @@
             return result;
         }
 
+        // Host กดเริ่มเกม -> เปลี่ยนสถานะเป็น SETUP เพื่อให้ทุกคนเลือก Role
         startGameBtn.onclick = async () => {
-            if (!confirm("คุณต้องการเริ่มเกมและแจกบทบาททั้งหมดหรือไม่?")) return;
-
-            startGameBtn.disabled = true;
-            startGameBtn.textContent = "กำลังเริ่มเกม...";
+            if (!confirm("ต้องการเริ่มเกมและเปิดระบบให้ผู้เล่นเลือกบทบาทและห้องพักหรือไม่?")) return;
 
             try {
-                const result = await runTransaction(roomRef, (data) => {
-                    if (!data) return;
-                    const players = data.players || {};
-                    const playerIds = Object.keys(players);
-                    const me = players[playerId];
-
-                    if (!me || !me.isHost || data.status !== "WAITING") return;
-                    const maxPlayers = data.maxPlayers || 6;
-                    if (playerIds.length < maxPlayers) return;
-
-                    const rolesToUse = data.config && data.config.rolesToUse 
-                        ? [...data.config.rolesToUse] 
-                        : ["Killer", "Accomplice", "Locksmith", "Housekeeper", "GlassCleaner", "Detective"];
-
-                    const shuffledPlayerIds = shuffle(playerIds);
-                    const shuffledRoles = shuffle(rolesToUse);
-
-                    shuffledPlayerIds.forEach((id, index) => {
-                        if (players[id]) {
-                            players[id].role = shuffledRoles[index] || "Innocent";
-                            players[id].isAlive = true;
-                            players[id].clues = [];
-                        }
-                    });
-
-                    data.players = assignRandomRooms(players, maxPlayers);
-                    data.status = "NIGHT";
-                    data.nightCount = 1;
-                    data.nightActions = null;
-                    data.dayVotes = null;
-
-                    return data;
-                }, { applyLocally: false });
-
-                if (!result.committed) {
-                    alert("ไม่สามารถเริ่มเกมได้ (ผู้เล่นอาจยังไม่ครบตามจำนวนที่กำหนด)");
-                }
+                await update(roomRef, {
+                    status: "SETUP"
+                });
             } catch (error) {
                 console.error(error);
                 alert("เกิดข้อผิดพลาด: " + error.message);
-            } finally {
-                startGameBtn.disabled = false;
-                startGameBtn.textContent = "เริ่มเกม (แจกบทบาท)";
             }
         };
 
         nextNightBtn.onclick = async () => {
-            if (!confirm("ต้องการจบช่วงเช้าและเข้าสู่คืนถัดไป (ย้ายห้องพักใหม่) หรือไม่?")) return;
+            if (!confirm("ต้องการจบช่วงเช้าและเข้าสู่คืนถัดไป (สุ่มย้ายห้องพักใหม่) หรือไม่?")) return;
 
             try {
                 await runTransaction(roomRef, (data) => {
