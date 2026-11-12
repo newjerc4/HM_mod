@@ -10,16 +10,16 @@
     </style>
 </head>
 
-<body class="bg-slate-950 text-slate-100 min-h-screen p-5">
+<body class="bg-slate-950 text-slate-100 min-h-screen p-4 pb-24">
 
-    <div class="max-w-md mx-auto space-y-4">
+    <div class="max-w-xl mx-auto space-y-4">
 
-        <!-- หัวข้อห้อง -->
-        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl text-center shadow-xl">
+        <!-- หัวข้อห้อง & สถานะ -->
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl text-center shadow-xl">
             <p class="text-xs font-semibold text-slate-400 uppercase tracking-widest">รหัสห้อง</p>
             <h1 id="displayRoomCode" class="text-3xl font-extrabold text-amber-400 tracking-wider my-1">---</h1>
 
-            <div class="mt-4 pt-3 border-t border-slate-800 flex justify-between items-center text-sm">
+            <div class="mt-3 pt-3 border-t border-slate-800 flex justify-between items-center text-sm">
                 <span class="text-slate-400">สถานะเกม:</span>
                 <span id="gameStatus" class="font-bold text-amber-500 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
                     กำลังรอผู้เล่น...
@@ -28,11 +28,11 @@
         </div>
 
         <!-- ข้อมูลของฉัน -->
-        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-2 shadow-xl">
-            <h3 class="text-base font-bold text-slate-200 flex items-center gap-2">
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-2 shadow-xl">
+            <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
                 <span>👤</span> ข้อมูลของคุณ
             </h3>
-            <div class="text-sm space-y-1 text-slate-300">
+            <div class="text-xs sm:text-sm space-y-1 text-slate-300">
                 <p>ชื่อ: <b id="myName" class="text-white">-</b></p>
                 <p>บทบาท: <b id="myRole" class="text-amber-400">รอเริ่มเกม</b></p>
                 <p>สถานะ: <b id="myStatus" class="text-emerald-400">มีชีวิต 🟢</b></p>
@@ -40,12 +40,12 @@
         </div>
 
         <!-- Host Controls -->
-        <div id="hostControls" class="hidden bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-3 shadow-xl">
-            <h3 class="text-base font-bold text-amber-400 flex items-center gap-2">
+        <div id="hostControls" class="hidden bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3 shadow-xl">
+            <h3 class="text-sm font-bold text-amber-400 flex items-center gap-2">
                 <span>👑</span> เมนู Host (ผู้สร้างห้อง)
             </h3>
             <button id="startGameBtn"
-                class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3 rounded-xl transition shadow-lg shadow-amber-500/10">
+                class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2.5 rounded-xl transition shadow-lg shadow-amber-500/10 text-sm">
                 เริ่มเกม (แจกบทบาท)
             </button>
             <p class="text-slate-400 text-xs text-center">
@@ -53,10 +53,29 @@
             </p>
         </div>
 
-        <!-- Player List -->
-        <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-3 shadow-xl">
+        <!-- ========================================= -->
+        // แผนผังโรงแรม (Hotel Map Grid - 9 ชั้น)
+        <!-- ========================================= -->
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3 shadow-xl">
             <div class="flex justify-between items-center">
-                <h3 class="text-base font-bold text-slate-200 flex items-center gap-2">
+                <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+                    <span>🏨</span> แผนผังโรงแรม (Hotel Map)
+                </h3>
+                <span id="mapStatusHint" class="text-xs text-amber-400/80 bg-amber-400/10 px-2.5 py-0.5 rounded border border-amber-400/20">
+                    รอเริ่มเกมเพื่อเปิดใช้แผนผัง
+                </span>
+            </div>
+
+            <!-- ตัวตึกแสดงผลชั้นต่างๆ (สร้างด้วย JS) -->
+            <div id="hotelMapContainer" class="space-y-2 pt-2">
+                <!-- ตึกจะถูกเรนเดอร์มาที่นี่ -->
+            </div>
+        </div>
+
+        <!-- Player List -->
+        <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3 shadow-xl">
+            <div class="flex justify-between items-center">
+                <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
                     <span>👥</span> ผู้เล่นในห้อง
                 </h3>
                 <span id="playerCount" class="text-xs font-semibold bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full border border-slate-700">
@@ -64,18 +83,38 @@
                 </span>
             </div>
 
-            <div id="playerList" class="space-y-2 max-h-48 overflow-y-auto pr-1">
-                <!-- รายชื่อผู้เล่นจะถูกเติมที่นี่ -->
+            <div id="playerList" class="space-y-2 max-h-36 overflow-y-auto pr-1">
+                <!-- รายชื่อผู้เล่น -->
             </div>
         </div>
 
         <button id="leaveRoomBtn"
-            class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold py-3 rounded-xl border border-slate-700 transition">
+            class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-semibold py-2.5 rounded-xl border border-slate-700 transition text-sm">
             ออกจากห้อง
         </button>
 
     </div>
 
+    <!-- ========================================= -->
+    // Modal ยืนยันการเลือกห้อง (Two-step Selection)
+    <!-- ========================================= -->
+    <div id="confirmModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-sm w-full space-y-4 shadow-2xl text-center">
+            <div class="text-4xl">🚪</div>
+            <h3 class="text-lg font-bold text-slate-100">ยืนยันการเลือกห้อง</h3>
+            <p class="text-sm text-slate-300">คุณต้องการเลือกห้องพักหมายเลข <b id="selectedRoomText" class="text-amber-400 text-lg">---</b> ใช่หรือไม่?</p>
+            <div class="flex space-x-3 pt-2">
+                <button onclick="closeConfirmModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-2.5 rounded-xl transition text-sm">
+                    ยกเลิก
+                </button>
+                <button onclick="submitRoomAction()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2.5 rounded-xl transition text-sm shadow-lg shadow-amber-500/20">
+                    ยืนยัน
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script จัดการระบบ -->
     <script type="module">
         import {
             db,
@@ -85,7 +124,6 @@
             runTransaction
         } from "./firebase-config.js";
 
-        // แปลงชื่อบทบาทเป็นภาษาไทย
         const ROLE_NAMES_TH = {
             Killer: "🗡️ คนร้าย (Killer)",
             Accomplice: "🤝 ผู้ช่วยคนร้าย (Accomplice)",
@@ -100,7 +138,6 @@
         const urlParams = new URLSearchParams(window.location.search);
         const roomCodeFromURL = urlParams.get('room');
 
-        // ดึงข้อมูลผู้เล่นจาก localStorage (ใช้คีย์ใหม่ hotel_murder_session)
         let playerData;
         try {
             playerData = JSON.parse(localStorage.getItem("hotel_murder_session"));
@@ -114,7 +151,6 @@
             throw new Error("Player data not found");
         }
     
-        // จัดการดึงค่า (ถ้าใน localStorage ไม่มี roomCode แต่ใน URL มี ให้ใช้จาก URL แทน)
         const roomCode = playerData.roomCode || roomCodeFromURL;
         const playerId = playerData.playerId;
         const playerName = playerData.playerName; 
@@ -137,9 +173,113 @@
         const playerList = document.getElementById("playerList");
         const playerCount = document.getElementById("playerCount");
         const startGameBtn = document.getElementById("startGameBtn");
+        const hotelMapContainer = document.getElementById("hotelMapContainer");
+        const mapStatusHint = document.getElementById("mapStatusHint");
+        const confirmModal = document.getElementById("confirmModal");
+        const selectedRoomText = document.getElementById("selectedRoomText");
 
         displayRoomCode.textContent = roomCode;
         myName.textContent = playerName;
+
+        let pendingSelectedRoom = null; // เก็บห้องที่ผู้เล่นกำลังกดเลือกชั่วคราว
+
+        // =========================================
+        // ฟังก์ชันสร้างแผนผังโรงแรม (Dynamic Hotel Map Generator)
+        // =========================================
+        function renderHotelMap(maxPlayers, gameStatusState) {
+            hotelMapContainer.innerHTML = "";
+
+            // คำนวณจำนวนชั้นที่เปิดใช้งานตามจำนวนผู้เล่น
+            // 6 คน: ปิด 3 ชั้นบน (เหลือชั้น 1-6)
+            // 7 คน: ปิด 2 ชั้นบน (เหลือชั้น 1-7)
+            // 8 คน: ปิด 1 ชั้นบน (เหลือชั้น 1-8)
+            // 9-10 คน: เปิดครบ 9 ชั้น
+            let minActiveFloor = 1;
+            let maxActiveFloor = 9;
+
+            if (maxPlayers === 6) maxActiveFloor = 6;
+            else if (maxPlayers === 7) maxActiveFloor = 7;
+            else if (maxPlayers === 8) maxActiveFloor = 8;
+            else if (maxPlayers >= 9) maxActiveFloor = 9;
+
+            // วาดตึกจากชั้นบนสุดลงมาล่างสุด (ชั้น 9 ลงมา 1)
+            for (let floor = 9; floor >= 1; floor--) {
+                const floorRow = document.createElement("div");
+                floorRow.className = "flex items-center justify-between bg-slate-950/50 p-2 rounded-xl border border-slate-800/60";
+
+                // ป้ายบอกชั้น
+                const floorLabel = document.createElement("span");
+                floorLabel.className = "text-xs font-semibold text-slate-400 w-16";
+                floorLabel.textContent = `ชั้น ${floor}`;
+                floorRow.appendChild(floorLabel);
+
+                // คอนเทนเนอร์ห้องทั้ง 3 ห้องประจำชั้น (01, 02, 03)
+                const roomsGroup = document.createElement("div");
+                roomsGroup.className = "flex space-x-2 flex-1 justify-end";
+
+                const isFloorClosed = floor > maxActiveFloor;
+
+                for (let roomNo = 1; roomNo <= 3; roomNo++) {
+                    const roomCodeStr = `${floor}0${roomNo}`; // เช่น 101, 102, 103
+                    const roomBtn = document.createElement("button");
+
+                    if (isFloorClosed) {
+                        // ชั้นที่ถูกปิดตามจำนวนผู้เล่น
+                        roomBtn.className = "bg-slate-900 text-slate-600 border border-slate-800/50 px-4 py-1.5 rounded-lg text-xs font-bold cursor-not-allowed";
+                        roomBtn.textContent = roomCodeStr;
+                        roomBtn.disabled = true;
+                    } else {
+                        // ชั้นที่เปิดใช้งานปกติ
+                        roomBtn.className = "bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-200 border border-slate-700 px-4 py-1.5 rounded-lg text-xs font-bold transition shadow-sm";
+                        roomBtn.textContent = roomCodeStr;
+
+                        // ตรวจสอบสถานะเกมว่าเปิดให้กดเลือกห้องหรือยัง (เช่น ถ้าอยู่ในเฟส NIGHT หรือ DAY)
+                        if (gameStatusState === "WAITING") {
+                            roomBtn.disabled = true;
+                            roomBtn.classList.add("opacity-50", "cursor-not-allowed");
+                        } else {
+                            // กดเลือกห้องเพื่อเปิด Modal ยืนยัน
+                            roomBtn.onclick = () => {
+                                pendingSelectedRoom = roomCodeStr;
+                                selectedRoomText.textContent = roomCodeStr;
+                                confirmModal.classList.remove("hidden");
+                                confirmModal.classList.add("flex");
+                            };
+                        }
+                    }
+
+                    roomsGroup.appendChild(roomBtn);
+                }
+
+                floorRow.appendChild(roomsGroup);
+                hotelMapContainer.appendChild(floorRow);
+            }
+
+            if (gameStatusState === "WAITING") {
+                mapStatusHint.textContent = `ผู้เล่น ${maxPlayers} คน (เปิดใช้งานชั้น 1 - ${maxActiveFloor})`;
+            } else {
+                mapStatusHint.textContent = `คลิกเลือกห้องที่ต้องการกระทำแอ็กชัน`;
+                mapStatusHint.className = "text-xs text-emerald-400 bg-emerald-400/10 px-2.5 py-0.5 rounded border border-emerald-400/20";
+            }
+        }
+
+        // ปิด Modal ยืนยัน
+        window.closeConfirmModal = function() {
+            confirmModal.classList.remove("flex");
+            confirmModal.classList.add("hidden");
+            pendingSelectedRoom = null;
+        };
+
+        // กดยืนยันส่งข้อมูลห้องที่เลือกไปเก็บใน Firebase
+        window.submitRoomAction = function() {
+            if (!pendingSelectedRoom) return;
+            
+            alert(`คุณได้ยืนยันเลือกห้อง ${pendingSelectedRoom} เรียบร้อยแล้ว! (ระบบบันทึกจำลอง)`);
+            
+            // TODO: ตรงนี้สามารถเขียนโค้ดบันทึกค่าลง Firebase ตามบทบาทได้ เช่น nightActions หรือ dayVotes
+            
+            closeConfirmModal();
+        };
 
         // ฟังข้อมูล Realtime จาก Firebase
         onValue(roomRef, (snapshot) => {
@@ -162,18 +302,19 @@
                 return;
             }
 
-            // แสดงสถานะเกม
-            gameStatus.textContent = data.status === "WAITING" ? "กำลังรอผู้เล่น..." : "🌙 เฟสกลางคืน (Night Phase)";
+            // สถานะเกม
+            const currentStatus = data.status || "WAITING";
+            gameStatus.textContent = currentStatus === "WAITING" ? "กำลังรอผู้เล่น..." : "🌙 เฟสกลางคืน (Night Phase)";
 
-            // ตรวจสอบสิทธิ์ Host (เช็คจาก isHost ของ player คนนั้นๆ)
-            if (me.isHost && data.status === "WAITING") {
+            // ตรวจสอบสิทธิ์ Host
+            if (me.isHost && currentStatus === "WAITING") {
                 hostControls.classList.remove("hidden");
             } else {
                 hostControls.classList.add("hidden");
             }
 
             // แสดงบทบาทของตัวเอง
-            if (data.status === "WAITING") {
+            if (currentStatus === "WAITING") {
                 myRole.textContent = "รอเริ่มเกม";
             } else {
                 const roleKey = me.role;
@@ -182,17 +323,17 @@
 
             myStatus.textContent = me.isAlive ? "มีชีวิต 🟢" : "เสียชีวิต 🔴";
 
-            // อัปเดตรายชื่อผู้เล่นในห้อง
+            // อัปเดตรายชื่อผู้เล่น
             playerCount.textContent = `ผู้เล่น ${playerIds.length} / ${data.maxPlayers || '-'} คน`;
             playerList.innerHTML = "";
 
             playerIds.forEach((id) => {
                 const player = players[id];
                 const item = document.createElement("div");
-                item.className = "bg-slate-950/60 p-3 rounded-xl flex justify-between items-center border border-slate-800/80";
+                item.className = "bg-slate-950/60 p-2.5 rounded-xl flex justify-between items-center border border-slate-800/80 text-xs";
 
                 const playerInfo = document.createElement("span");
-                playerInfo.className = "text-sm text-slate-200";
+                playerInfo.className = "text-slate-200";
                 playerInfo.textContent = player.name + (player.isHost ? " 👑 (Host)" : "");
 
                 const status = document.createElement("span");
@@ -203,12 +344,14 @@
                 playerList.appendChild(item);
             });
 
+            // สร้างแผนผังโรงแรมตามจำนวน maxPlayers ของห้อง
+            renderHotelMap(data.maxPlayers || 6, currentStatus);
+
         }, (error) => {
             console.error("Firebase Error:", error);
             alert("ไม่สามารถโหลดข้อมูลห้องได้: " + error.message);
         });
 
-        // ฟังก์ชันสลับตำแหน่งอาเรย์ (Fisher-Yates Shuffle)
         function shuffle(array) {
             const result = [...array];
             for (let i = result.length - 1; i > 0; i--) {
@@ -218,7 +361,7 @@
             return result;
         }
 
-        // กดปุ่มเริ่มเกม (แจกบทบาทตาม Preset ของห้อง)
+        // กดปุ่มเริ่มเกม
         startGameBtn.onclick = async () => {
             if (!confirm("คุณต้องการเริ่มเกมและแจกบทบาททั้งหมดหรือไม่?")) {
                 return;
@@ -237,27 +380,22 @@
                         const playerIds = Object.keys(players);
                         const me = players[playerId];
 
-                        // ตรวจสอบสิทธิ์ Host
                         if (!me || !me.isHost) return;
                         if (data.status !== "WAITING") return;
 
                         const maxPlayers = data.maxPlayers || 6;
                         
-                        // ตรวจสอบว่าผู้เล่นครบตามจำนวนที่กำหนดไหม
                         if (playerIds.length < maxPlayers) {
                             return; 
                         }
 
-                        // ดึงรายการบทบาทที่เตรียมไว้ตามจำนวนคน
                         const rolesToUse = data.config && data.config.rolesToUse 
                             ? [...data.config.rolesToUse] 
                             : ["Killer", "Accomplice", "Locksmith", "Housekeeper", "GlassCleaner", "Innocent"];
 
-                        // สลับตำแหน่งผู้เล่นและสลับบทบาท
                         const shuffledPlayerIds = shuffle(playerIds);
                         const shuffledRoles = shuffle(rolesToUse);
 
-                        // แจกบทบาทให้ผู้เล่นทีละคน
                         shuffledPlayerIds.forEach((id, index) => {
                             if (players[id]) {
                                 players[id].role = shuffledRoles[index] || "Innocent";
@@ -266,7 +404,7 @@
                         });
 
                         data.players = players;
-                        data.status = "NIGHT"; // เปลี่ยนสถานะเข้าสู่คืนแรก
+                        data.status = "NIGHT"; 
 
                         return data;
                     },
@@ -286,7 +424,6 @@
             }
         };
 
-        // ออกจากห้อง
         document.getElementById("leaveRoomBtn").onclick = () => {
             if (!confirm("ต้องการออกจากห้องหรือไม่?")) {
                 return;
