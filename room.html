@@ -121,11 +121,13 @@
                     <span>👥</span> ผู้เล่นในห้อง
                 </h3>
                 <div class="flex items-center gap-2">
-                    <span id="survivalSummary" class="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
-                        ผู้รอดชีวิต: -
-                    </span>
+                    <!-- ป้ายแสดงจำนวนผู้เล่น -->
                     <span id="playerCount" class="text-xs font-semibold bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full border border-slate-700">
-                        0 คน
+                        จำนวนผู้เล่น: -
+                    </span>
+                    <!-- ป้ายแสดงจำนวนผู้รอดชีวิต -->
+                    <span id="survivalSummary" class="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                        จำนวนผู้รอดชีวิต: -
                     </span>
                 </div>
             </div>
@@ -1136,8 +1138,8 @@
             }
 
             const aliveCount = playerIds.filter(id => players[id].isAlive).length;
-            survivalSummary.textContent = `ผู้รอดชีวิต: ${aliveCount} / ${playerIds.length} คน`;
-            playerCount.textContent = `${playerIds.length} / ${data.maxPlayers || '-'} คน`;
+            playerCount.textContent = `จำนวนผู้เล่น: ${playerIds.length} / ${data.maxPlayers || '-'}`;
+            survivalSummary.textContent = `จำนวนผู้รอดชีวิต: ${aliveCount} / ${playerIds.length}`;
             playerList.innerHTML = "";
 
             playerIds.forEach((id) => {
