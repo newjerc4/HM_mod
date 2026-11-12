@@ -89,7 +89,7 @@
             </button>
             <button id="resolveVoteBtn"
                 class="hidden w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-2.5 rounded-xl transition shadow-lg text-sm">
-                ⚖️ สรุปผลโหวตประจำวัน & ตัดสินประหาร
+                ⚖️ สรุปผลโหวตประจำวัน & ตัดสินรุมประชาทัณฑ์
             </button>
             <button id="nextNightBtn"
                 class="hidden w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2.5 rounded-xl transition shadow-lg text-sm">
@@ -509,14 +509,14 @@
                         const p = players[pid];
                         return p.isAlive && p.currentRoom && p.currentRoom.endsWith(targetCol);
                     }).length;
-                    resultMessage = `🪟 ผลสแกนคอลัมน์ ${targetCol}: พบผู้เข้าพักรวม ${count} คนในแนวตั้งนี้ทุกชั้น`;
+                    resultMessage = `🪟 ผลสแกนคอลัมน์ ${targetCol}: พบผู้เข้าพักรวม ${count} คนในคอลัมน์นี้`;
                 }
                 else if ((me.role === "Detective" || me.role === "Accomplice") && payload.type === "PLAYER") {
                     const targetPlayer = players[payload.target];
                     if (targetPlayer && targetPlayer.currentRoom) {
                         const floor = targetPlayer.currentRoom[0];
                         const roleTitle = me.role === "Detective" ? "🔍 นักสืบ" : "🤝 ผู้ช่วย";
-                        resultMessage = `${roleTitle}สืบทราบว่า: คุณ ${targetPlayer.name} พักอยู่ที่ <b>ชั้น ${floor}</b>`;
+                        resultMessage = `${roleTitle}สืบทราบว่า: คุณ ${targetPlayer.name} พักอยู่ที่ ชั้น ${floor}`;
                     } else {
                         resultMessage = `เป้าหมายไม่ได้อยู่ในห้องพักตอนนี้`;
                     }
@@ -550,9 +550,9 @@
                             } else {
                                 relation = "เท่ากับ";
                             }
-                            resultMessage = `👁️ ผลตรวจพยาน (ชั้นอ้างอิง ${refFloor}): เฝ้าถูกชั้น! คนร้ายลงมือที่ชั้นนี้ และสืบทราบว่าตัวคนร้ายพักอยู่ชั้นที่ <b>${relation}</b> ชั้นที่คุณเฝ้า 🎯`;
+                            resultMessage = `👁️ ผลตรวจพยาน (ชั้นที่คุณเฝ้าคือ ${refFloor}): เฝ้าถูกชั้น! คนร้ายลงมือที่ชั้นนี้ และสืบทราบว่าตัวคนร้ายพักอยู่ชั้นที่ ${relation} ชั้นที่คุณเฝ้า 🎯`;
                         } else {
-                            resultMessage = `👁️ ผลตรวจพยาน (ชั้นอ้างอิง ${refFloor}): เฝ้าผิดชั้น คืนนี้ไม่มีเหตุการณ์ในชั้นนี้`;
+                            resultMessage = `👁️ ผลตรวจพยาน (ชั้นที่คุณเฝ้าคือ ${refFloor}): เฝ้าผิดชั้น คืนนี้ไม่มีเหตุการณ์ในชั้นนี้`;
                         }
                     } else {
                         resultMessage = `👁️ บันทึกชั้นอ้างอิง ${refFloor} เรียบร้อย (คนร้ายยังไม่ได้ลงมือ)`;
@@ -663,7 +663,7 @@
                         } else {
                             closedRooms[killerTargetRoom] = true;
                             roomLabels[killerTargetRoom] = "ห้องว่าง";
-                            newsMessage = `เมื่อคืนมีเสียงดังผิดปกติที่ห้อง ${killerTargetRoom} แต่ห้องนั้นไม่มีคนอยู่ ➔ (ห้องนี้คือห้องว่าง)`;
+                            newsMessage = `เมื่อคืนมีเสียงดังผิดปกติที่ห้อง ${killerTargetRoom} แต่โชคดี !! ห้องนั้นไม่มีคนอยู่ ➔ (ห้องนี้คือห้องว่าง)`;
                         }
                     }
                 } else {
