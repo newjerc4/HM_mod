@@ -19,7 +19,7 @@
         <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl text-center shadow-xl">
             <div class="flex justify-between items-center text-xs text-slate-400 mb-1">
                 <span>รหัสห้อง: <b id="displayRoomCode" class="text-amber-400 text-sm tracking-wider">---</b></span>
-                <span id="nightCounter" class="bg-slate-800 px-2.5 py-0.5 rounded-full text-slate-300">เตรียมพร้อม (เทิร์นที่ 1/3)</span>
+                <span id="nightCounter" class="bg-slate-800 px-2.5 py-0.5 rounded-full text-slate-300">เตรียมพร้อม</span>
             </div>
 
             <div class="mt-2 pt-2 border-t border-slate-800 flex justify-between items-center text-sm">
@@ -99,9 +99,6 @@
                 class="hidden w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2.5 rounded-xl transition shadow-lg text-sm">
                 🌙 เข้าสู่คืนถัดไป
             </button>
-            <p id="hostHintText" class="text-slate-400 text-xs text-center">
-                รองรับสูงสุด 9 คน | ≤6 คน เล่น 3 เทิร์น / 7-9 คน เล่น 4 เทิร์น
-            </p>
         </div>
 
         <!-- แผนผังโรงแรม -->
@@ -202,7 +199,7 @@
             runTransaction
         } from "./firebase-config.js";
 
-        const MAX_ROOM_PLAYERS = 9; // จำกัดผู้เล่นสูงสุด 9 คน
+        const MAX_ROOM_PLAYERS = 9;
 
         const ROLE_NAMES_TH = {
             Killer: "🗡️ คนร้าย (Killer)",
@@ -317,7 +314,6 @@
         let pendingActionPayload = null;
         let settingCrimeSceneCount = 0;
 
-        // คำนวณชั้นที่เปิดใช้งานตามจำนวนผู้เล่น (สูงสุด 9 คน / 9 ชั้น)
         function getMaxActiveFloor(maxPlayers) {
             const capped = Math.min(maxPlayers || 6, MAX_ROOM_PLAYERS);
             if (capped <= 6) return 6;
@@ -326,7 +322,6 @@
             return 9;
         }
 
-        // คำนวณจำนวนเทิร์นสูงสุด (<=6 คน = 3 เทิร์น / 7-9 คน = 4 เทิร์น)
         function getMaxTurns(playersObj) {
             const count = Object.keys(playersObj || {}).length;
             return count >= 7 ? 4 : 3;
@@ -435,7 +430,7 @@
                     const updates = { closedRooms, roomLabels };
                     if (settingCrimeSceneCount <= 0) {
                         updates.status = "DAY";
-                        updates.dayPhase = "NOMINATE"; // เฟส 1: เสนอชื่อห้อง
+                        updates.dayPhase = "NOMINATE";
                         updates.nightCount = 1;
                         updates.morningNews = "เริ่มเกมวันแรก! ทุกคนเข้าพักเรียบร้อยแล้ว เชิญพูดคุยและเลือกเสนอห้องที่สงสัยบนแผนผัง";
                     }
@@ -606,7 +601,6 @@
             }
         };
 
-        // ฟังก์ชันสุ่มย้ายห้องอัตโนมัติของคนเมา (ใช้ได้ 1 ครั้งต่อเกม)
         window.triggerDrunkRandomMove = async function() {
             if (!currentRoomData) return;
             const players = currentRoomData.players || {};
@@ -617,7 +611,6 @@
             const maxActiveFloor = getMaxActiveFloor(maxPlayers);
             const closedRooms = currentRoomData.closedRooms || {};
 
-            // รวบรวมห้องที่มีคนพักอยู่แล้ว
             const occupiedRooms = new Set();
             Object.keys(players).forEach(pid => {
                 if (players[pid].isAlive && players[pid].currentRoom) {
@@ -625,7 +618,6 @@
                 }
             });
 
-            // หาห้องว่างที่ไม่ได้ปิด และไม่มีใครพักอยู่
             const availableEmptyRooms = [];
             for (let f = 1; f <= maxActiveFloor; f++) {
                 for (let r = 1; r <= 3; r++) {
@@ -734,7 +726,7 @@
                         if (victimId) {
                             players[victimId].isAlive = false;
                             closedRooms[killerTargetRoom] = true;
-                            roomLabels[killerTargetRoom] = "ฆาตกรรม"; // เปลี่ยนจาก ผู้เคราะห์ร้าย เป็น ฆาตกรรม
+                            roomLabels[killerTargetRoom] = "ฆาตกรรม";
                             newsMessage = `เกิดเหตุฆาตกรรมขึ้นที่ห้อง ${killerTargetRoom}! พบศพของ "${players[victimId].name}" ➔ เสียชีวิตในห้องพัก`;
                         } else {
                             closedRooms[killerTargetRoom] = true;
@@ -751,7 +743,7 @@
                 data.roomLabels = roomLabels;
                 data.morningNews = newsMessage;
                 data.status = "DAY";
-                data.dayPhase = "NOMINATE"; // เริ่มเฟส 1: เสนอห้อง
+                data.dayPhase = "NOMINATE";
                 data.dayNominations = null;
                 data.dayFinalVotes = null;
                 data.nominatedRooms = null;
@@ -1004,10 +996,8 @@
                         if (isClosed) {
                             btnStyle += "bg-rose-950/80 text-rose-300 border-rose-500/60 cursor-not-allowed opacity-90";
                         } else if (isHighlightedNominee) {
-                            // ไฮไลต์ห้องที่ถูกเสนอชื่อในรอบโหวตรอบสอง
                             btnStyle += "bg-amber-500/20 text-amber-300 border-amber-400 ring-2 ring-amber-400/50 shadow-lg shadow-amber-500/20 ";
                         } else if (gameStatusState === "DAY" && dayPhase === "FINAL_VOTE") {
-                            // ห้องอื่นที่ไม่ได้ถูกเสนอชื่อให้จางลง
                             btnStyle += "bg-slate-900/50 text-slate-600 border-slate-800/50 opacity-40 ";
                         } else if (isMyRoom) {
                             btnStyle += "bg-indigo-950/80 text-indigo-300 border-indigo-500/60 ";
@@ -1135,7 +1125,7 @@
             }
 
             nightCounter.textContent = (currentStatus === "WAITING" || currentStatus === "SETUP" || currentStatus === "WAITING_CRIME_SCENE" || currentStatus === "SETUP_CRIME_SCENE") 
-                ? `เตรียมพร้อม (สูงสุด ${maxTurns} เทิร์น)` 
+                ? `เตรียมพร้อม` 
                 : `เทิร์นที่ ${data.nightCount || 1}/${maxTurns}`;
 
             if (currentStatus === "ENDED") {
@@ -1171,7 +1161,6 @@
                 gameStatus.className = "font-bold text-amber-500 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20";
             }
 
-            // แสดงกระดานข่าวค้างไว้ตลอดเฟส DAY
             if (currentStatus === "DAY") {
                 morningNewsBox.classList.remove("hidden");
                 morningNewsText.innerHTML = data.morningNews || "☀️ เข้าสู่ช่วงกลางวัน - พูดคุยแลกเปลี่ยนเบาะแสและเตรียมโหวตห้องต้องสงสัย";
@@ -1179,7 +1168,6 @@
                 morningNewsBox.classList.add("hidden");
             }
 
-            // จัดการปุ่มของ Host
             if (me.isHost) {
                 if (currentStatus === "WAITING") {
                     hostControls.classList.remove("hidden");
@@ -1388,7 +1376,6 @@
             }
         };
 
-        // Host กดดูรายชื่อห้องที่มีการโหวต -> เปิดรอบสอง
         showVoteListBtn.onclick = async () => {
             try {
                 await runTransaction(roomRef, (data) => {
@@ -1396,7 +1383,7 @@
                     const dayNominations = data.dayNominations || {};
                     const players = data.players || {};
 
-                    const roomNomineesMap = {}; // room -> [รายชื่อผู้เสนอ]
+                    const roomNomineesMap = {};
                     Object.keys(dayNominations).forEach(pid => {
                         const targetRoom = dayNominations[pid].target;
                         const pName = players[pid]?.name || "ไม่ทราบชื่อ";
@@ -1422,7 +1409,6 @@
             }
         };
 
-        // Host กดสรุปผลการโหวตรอบสอง -> ตัดสินประหารห้องที่ได้คะแนนสูงสุด
         resolveVoteBtn.onclick = async () => {
             Swal.fire({
                 title: 'สรุปผลโหวตและประหาร?',
@@ -1470,17 +1456,31 @@
                                     roomLabels[highestRoom] = "ประชาทัณฑ์";
                                     players[targetPlayerId].isAlive = false;
                                     const executedPlayer = players[targetPlayerId];
-                                    executionMsg = `⚖️ ผลโหวตสูงสุด (${maxVotes} เสียง) ตกที่ห้อง ${highestRoom} (ประชาทัณฑ์)! ถูกโหวตประหารชีวิตผู้เล่น "${executedPlayer.name}" (${ROLE_NAMES_TH[executedPlayer.role] || executedPlayer.role})`;
 
-                                    if (executedPlayer.role === "Drunk") {
+                                    // เงื่อนไขการเปิดเผยบทบาทตอนประชาทัณฑ์ (ไม่เฉลย ยกเว้นเป็น Killer หรือ Drunk)
+                                    if (executedPlayer.role === "Killer") {
+                                        executionMsg = `⚖️ ผลโหวตสูงสุด (${maxVotes} เสียง) ตกที่ห้อง ${highestRoom} (ประชาทัณฑ์)! และผู้เล่นที่ถูกประหารคือ "${executedPlayer.name}" ซึ่งเป็น 🗡️ คนร้าย (Killer)! ฝั่งคนดีชนะเกมนี้!`;
                                         data.status = "ENDED";
-                                        data.winner = "DRUNK";
-                                        data.endMessage = `🍻 ผู้เล่น "${executedPlayer.name}" คือคนเมาที่ถูกโหวตประหารสำเร็จ! คนเมา ชนะเกมนี้คนเดียวเด็ดขาด!`;
-                                        data.morningNews = executionMsg + "<br>" + data.endMessage;
+                                        data.winner = "GOOD";
+                                        data.endMessage = `🎉 โหวตประหารถูกตัวคนร้าย (${executedPlayer.name}) สำเร็จ! ฝั่งคนดีชนะเกมนี้!`;
+                                        data.morningNews = executionMsg;
                                         data.players = players;
                                         data.closedRooms = closedRooms;
                                         data.roomLabels = roomLabels;
                                         return data;
+                                    } else if (executedPlayer.role === "Drunk") {
+                                        executionMsg = `⚖️ ผลโหวตสูงสุด (${maxVotes} เสียง) ตกที่ห้อง ${highestRoom} (ประชาทัณฑ์)! ผู้เล่นที่ถูกประหารคือ "${executedPlayer.name}" ซึ่งคือคนเมา! คนเมา ชนะเกมนี้คนเดียวเด็ดขาด!`;
+                                        data.status = "ENDED";
+                                        data.winner = "DRUNK";
+                                        data.endMessage = `🍻 ผู้เล่น "${executedPlayer.name}" คือคนเมาที่ถูกโหวตประหารสำเร็จ! คนเมา ชนะเกมนี้คนเดียวเด็ดขาด!`;
+                                        data.morningNews = executionMsg;
+                                        data.players = players;
+                                        data.closedRooms = closedRooms;
+                                        data.roomLabels = roomLabels;
+                                        return data;
+                                    } else {
+                                        // กรณีไม่ใช่คนร้ายหรือคนเมา จะไม่เฉลยบทบาท
+                                        executionMsg = `⚖️ ผลโหวตสูงสุด (${maxVotes} เสียง) ตกที่ห้อง ${highestRoom} (ประชาทัณฑ์)! ผู้เล่น "${executedPlayer.name}" ถูกโหวตประหารชีวิต (ความจริงถูกปิดตาย ไม่มีการเปิดเผยบทบาท)`;
                                     }
                                 } else {
                                     roomLabels[highestRoom] = "ห้องว่าง";
@@ -1493,7 +1493,6 @@
                             const currentNight = data.nightCount || 1;
                             const maxTurns = getMaxTurns(players);
 
-                            // เช็กเงื่อนไขชนะฝั่งคนดี (คนร้ายตายหมด)
                             const alivePlayersList = Object.keys(players).filter(id => players[id].isAlive);
                             const aliveKiller = alivePlayersList.some(id => players[id].role === "Killer");
 
@@ -1510,7 +1509,7 @@
                             } else {
                                 data.morningNews = executionMsg;
                                 data.status = "DAY";
-                                data.dayPhase = "RESOLVED"; // ค้างหน้าข่าว DAY ไว้จนกว่า Host จะกดเข้าคืนถัดไป
+                                data.dayPhase = "RESOLVED";
                             }
 
                             data.players = players;
