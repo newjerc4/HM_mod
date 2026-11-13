@@ -99,6 +99,10 @@
                 class="hidden w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2.5 rounded-xl transition shadow-lg text-sm">
                 🌙 เข้าสู่คืนถัดไป
             </button>
+            <button id="resetGameBtn"
+                class="hidden w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl transition shadow-lg text-sm">
+                🔄 เริ่มเกมใหม่ (รีเซ็ตห้องนี้)
+            </button>
         </div>
 
         <!-- แผนผังโรงแรม -->
@@ -293,6 +297,7 @@
         const showVoteListBtn = document.getElementById("showVoteListBtn");
         const resolveVoteBtn = document.getElementById("resolveVoteBtn");
         const nextNightBtn = document.getElementById("nextNightBtn");
+        const resetGameBtn = document.getElementById("resetGameBtn");
 
         const hotelMapContainer = document.getElementById("hotelMapContainer");
         const mapStatusHint = document.getElementById("mapStatusHint");
@@ -1181,6 +1186,7 @@
                     showVoteListBtn.classList.add("hidden");
                     resolveVoteBtn.classList.add("hidden");
                     nextNightBtn.classList.add("hidden");
+                    resetGameBtn.classList.add("hidden");
                 } else if (currentStatus === "WAITING_CRIME_SCENE") {
                     hostControls.classList.remove("hidden");
                     startGameBtn.classList.add("hidden");
@@ -1188,12 +1194,14 @@
                     showVoteListBtn.classList.add("hidden");
                     resolveVoteBtn.classList.add("hidden");
                     nextNightBtn.classList.add("hidden");
+                    resetGameBtn.classList.add("hidden");
                 } else if (currentStatus === "SETUP_CRIME_SCENE") {
                     hostControls.classList.add("hidden");
                 } else if (currentStatus === "DAY") {
                     hostControls.classList.remove("hidden");
                     startGameBtn.classList.add("hidden");
                     setupCrimeSceneBtn.classList.add("hidden");
+                    resetGameBtn.classList.add("hidden");
                     
                     if (dayPhase === "NOMINATE") {
                         showVoteListBtn.classList.remove("hidden");
@@ -1208,6 +1216,14 @@
                         resolveVoteBtn.classList.add("hidden");
                         nextNightBtn.classList.remove("hidden");
                     }
+                } else if (currentStatus === "ENDED") {
+                    hostControls.classList.remove("hidden");
+                    startGameBtn.classList.add("hidden");
+                    setupCrimeSceneBtn.classList.add("hidden");
+                    showVoteListBtn.classList.add("hidden");
+                    resolveVoteBtn.classList.add("hidden");
+                    nextNightBtn.classList.add("hidden");
+                    resetGameBtn.classList.remove("hidden");
                 } else {
                     hostControls.classList.add("hidden");
                 }
@@ -1548,6 +1564,56 @@
             } catch (error) {
                 console.error(error);
             }
+        };
+
+        resetGameBtn.onclick = async () => {
+            Swal.fire({
+                title: 'เริ่มเกมใหม่?',
+                text: "รีเซ็ตห้องนี้เพื่อเริ่มเล่นตาใหม่ (รายชื่อผู้เล่นเดิมจะยังอยู่)",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'ยืนยันเริ่มเกมใหม่',
+                cancelButtonText: 'ยกเลิก',
+                background: '#0f172a',
+                color: '#f8fafc'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        await runTransaction(roomRef, (data) => {
+                            if (!data) return;
+                            data.status = "SETUP";
+                            data.nightCount = 1;
+                            data.closedRooms = null;
+                            data.roomLabels = null;
+                            data.morningNews = null;
+                            data.dayPhase = null;
+                            data.dayNominations = null;
+                            data.dayFinalVotes = null;
+                            data.nominatedRooms = null;
+                            data.nightActions = null;
+                            data.winner = null;
+                            data.endMessage = null;
+                            data.lastLockedRoom = null;
+
+                            const players = data.players || {};
+                            Object.keys(players).forEach(pid => {
+                                players[pid].isAlive = true;
+                                players[pid].role = null;
+                                players[pid].currentRoom = null;
+                                players[pid].isReadySetup = false;
+                                players[pid].hasUsedDrunkSwap = false;
+                                players[pid].clues = [];
+                            });
+                            data.players = players;
+                            return data;
+                        });
+                    } catch (error) {
+                        console.error(error);
+                    }
+                }
+            });
         };
 
         document.getElementById("leaveRoomBtn").onclick = () => {
