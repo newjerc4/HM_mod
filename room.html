@@ -537,14 +537,18 @@
                     if (murdererCrimeFloor !== null) {
                         if (murdererCrimeFloor === refFloor) {
                             let relation = "";
+                            let arrow = "";
                             if (murdererHomeFloor > refFloor) {
                                 relation = "สูงกว่า";
+                                arrow = "⬆️";
                             } else if (murdererHomeFloor < refFloor) {
                                 relation = "ต่ำกว่า";
+                                arrow = "⬇️";
                             } else {
-                                relation = "เท่ากับ";
+                                relation = "ชั้นเดียวกับ";
+                                arrow = "↔️";
                             }
-                            resultMessage = `👁️ ผลตรวจพยาน (ชั้นที่คุณเฝ้าคือ ${refFloor}): เฝ้าถูกชั้น! ฆาตกรลงมือที่ชั้นนี้ และสืบทราบว่าตัวฆาตกรพักอยู่ชั้นที่ ${relation} ชั้นที่คุณเฝ้า 🎯`;
+                            resultMessage = `👁️ ผลตรวจพยาน (ชั้นที่คุณเฝ้าคือ ${refFloor}): เฝ้าถูกชั้น! ฆาตกรลงมือที่ชั้นนี้ และสืบทราบว่าตัวฆาตกรพักอยู่ชั้นที่ ${relation} (${arrow}) กับชั้นที่คุณเฝ้า`;
                         } else {
                             resultMessage = `👁️ ผลตรวจพยาน (ชั้นที่คุณเฝ้าคือ ${refFloor}): เฝ้าผิดชั้น คืนนี้ไม่มีเหตุการณ์ในชั้นนี้`;
                         }
@@ -694,7 +698,6 @@
                 const nightActions = data.nightActions || {};
                 const aliveIds = Object.keys(players).filter(id => players[id].isAlive);
                 
-                // กรองเฉพาะบทบาทที่ต้องทำแอคชั่นตอนกลางคืน (ไม่รวม Tourist)
                 const activeNightRoleIds = aliveIds.filter(id => players[id].role !== "Tourist");
 
                 const allSubmitted = activeNightRoleIds.every(id => nightActions[id] !== undefined);
@@ -1232,7 +1235,6 @@
                     myRoomBadge.classList.add("hidden");
                 }
 
-                // เพิ่มแสดงเลขห้องพักของคู่หูฝั่งฆาตกร (ฆาตกร + ผู้ช่วย)
                 if (roleKey === "Murderer" || roleKey === "Accomplice") {
                     const partnerId = playerIds.find(id => id !== playerId && (players[id].role === "Murderer" || players[id].role === "Accomplice"));
                     if (partnerId) {
