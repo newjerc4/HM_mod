@@ -171,7 +171,7 @@
                     class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-3 text-white text-xs focus:outline-none focus:border-amber-400">
                     <option value="Tourist">🎒 นักท่องเที่ยว (Tourist)</option>
                     <option value="Drunk">🍻 คนเมา (Drunk)</option>
-                    <option value="Murderer">🗡️ ฆาตกร (Murderer)</option>
+                    <option value="Murderer">🗡️ คนร้าย (Murderer)</option>
                     <option value="Accomplice">🤝 ผู้ช่วย (Accomplice)</option>
                     <option value="Keymaster">🔑 ช่างทำกุญแจ (Keymaster)</option>
                     <option value="Housekeeper">🧹 แม่บ้าน (Housekeeper)</option>
@@ -520,26 +520,26 @@
                     const refFloor = parseInt(payload.target);
                     const nightActions = currentRoomData.nightActions || {};
                     
-                    let MurdererCrimeFloor = null;
-                    let MurdererHomeFloor = null;
+                    let murdererCrimeFloor = null;
+                    let murdererHomeFloor = null;
 
                     Object.keys(players).forEach(pid => {
                         if (players[pid].role === "Murderer") {
                             if (nightActions[pid]?.target) {
-                                MurdererCrimeFloor = parseInt(nightActions[pid].target[0]);
+                                murdererCrimeFloor = parseInt(nightActions[pid].target[0]);
                             }
                             if (players[pid].currentRoom) {
-                                MurdererHomeFloor = parseInt(players[pid].currentRoom[0]);
+                                murdererHomeFloor = parseInt(players[pid].currentRoom[0]);
                             }
                         }
                     });
 
-                    if (MurdererCrimeFloor !== null) {
-                        if (MurdererCrimeFloor === refFloor) {
+                    if (murdererCrimeFloor !== null) {
+                        if (murdererCrimeFloor === refFloor) {
                             let relation = "";
-                            if (MurdererHomeFloor > refFloor) {
+                            if (murdererHomeFloor > refFloor) {
                                 relation = "สูงกว่า";
-                            } else if (MurdererHomeFloor < refFloor) {
+                            } else if (murdererHomeFloor < refFloor) {
                                 relation = "ต่ำกว่า";
                             } else {
                                 relation = "เท่ากับ";
@@ -697,11 +697,11 @@
                 const allSubmitted = aliveIds.every(id => nightActions[id] !== undefined);
                 if (!allSubmitted) return data; 
 
-                let MurdererTargetRoom = null;
+                let murdererTargetRoom = null;
                 aliveIds.forEach(id => {
                     if (players[id].role === "Murderer") {
                         if (nightActions[id]?.target) {
-                            MurdererTargetRoom = nightActions[id].target;
+                            murdererTargetRoom = nightActions[id].target;
                         }
                     }
                 });
@@ -718,20 +718,20 @@
                 const closedRooms = data.closedRooms || {};
                 const roomLabels = data.roomLabels || {};
 
-                if (MurdererTargetRoom) {
-                    if (MurdererTargetRoom === lockedRoom) {
-                        newsMessage = `เมื่อคืนคนร้ายบุกไปที่ห้อง ${MurdererTargetRoom} แต่ประตูถูกล็อกไว้อย่างแน่นหนา! ไม่มีใครเสียชีวิต`;
+                if (murdererTargetRoom) {
+                    if (murdererTargetRoom === lockedRoom) {
+                        newsMessage = `เมื่อคืนคนร้ายบุกไปที่ห้อง ${murdererTargetRoom} แต่ประตูถูกล็อกไว้อย่างแน่นหนา! ไม่มีใครเสียชีวิต`;
                     } else {
-                        const victimId = aliveIds.find(pid => players[pid].currentRoom === MurdererTargetRoom);
+                        const victimId = aliveIds.find(pid => players[pid].currentRoom === murdererTargetRoom);
                         if (victimId) {
                             players[victimId].isAlive = false;
-                            closedRooms[MurdererTargetRoom] = true;
-                            roomLabels[MurdererTargetRoom] = "ฆาตกรรม";
-                            newsMessage = `เกิดเหตุฆาตกรรมขึ้นที่ห้อง ${MurdererTargetRoom}! พบศพของ "${players[victimId].name}" ➔ เสียชีวิตในห้องพัก`;
+                            closedRooms[murdererTargetRoom] = true;
+                            roomLabels[murdererTargetRoom] = "ฆาตกรรม";
+                            newsMessage = `เกิดเหตุฆาตกรรมขึ้นที่ห้อง ${murdererTargetRoom}! พบศพของ "${players[victimId].name}" ➔ เสียชีวิตในห้องพัก`;
                         } else {
-                            closedRooms[MurdererTargetRoom] = true;
-                            roomLabels[MurdererTargetRoom] = "ห้องว่าง";
-                            newsMessage = `เมื่อคืนมีเสียงดังผิดปกติที่ห้อง ${MurdererTargetRoom} แต่ห้องนั้นไม่มีคนอยู่ ➔ (ห้องนี้คือห้องว่าง)`;
+                            closedRooms[murdererTargetRoom] = true;
+                            roomLabels[murdererTargetRoom] = "ห้องว่าง";
+                            newsMessage = `เมื่อคืนมีเสียงดังผิดปกติที่ห้อง ${murdererTargetRoom} แต่ห้องนั้นไม่มีคนอยู่ ➔ (ห้องนี้คือห้องว่าง)`;
                         }
                     }
                 } else {
@@ -750,10 +750,10 @@
                 data.nightActions = null;
 
                 const alivePlayersList = Object.keys(players).filter(id => players[id].isAlive);
-                const MurdererCount = alivePlayersList.filter(id => players[id].role === "Murderer" || players[id].role === "Accomplice").length;
-                const goodCount = alivePlayersList.length - MurdererCount;
+                const murdererCount = alivePlayersList.filter(id => players[id].role === "Murderer" || players[id].role === "Accomplice").length;
+                const goodCount = alivePlayersList.length - murdererCount;
 
-                if (MurdererCount >= goodCount && MurdererCount > 0) {
+                if (murdererCount >= goodCount && murdererCount > 0) {
                     data.status = "ENDED";
                     data.winner = "Murderer";
                     data.endMessage = "🗡️ ฝั่งคนร้ายมีจำนวนเท่ากับหรือมากกว่าฝั่งคนดี! ฝั่งคนร้ายชนะเกมนี้!";
@@ -1233,7 +1233,7 @@
                 if (roleKey === "Murderer" || roleKey === "Accomplice") {
                     const partnerId = playerIds.find(id => id !== playerId && (players[id].role === "Murderer" || players[id].role === "Accomplice"));
                     if (partnerId) {
-                        partnerInfo.textContent = `🤝 คู่หูฝั่งคนร้ายของคุณคือ: ${players[partnerId].name} (${players[partnerId].role === "Murderer" ? "ฆาตกร" : "ผู้ช่วย"})`;
+                        partnerInfo.textContent = `🤝 คู่หูฝั่งคนร้ายของคุณคือ: ${players[partnerId].name} (${players[partnerId].role === "Murderer" ? "คนร้าย" : "ผู้ช่วย"})`;
                         partnerInfo.classList.remove("hidden");
                     }
                 } else {
@@ -1457,7 +1457,6 @@
                                     players[targetPlayerId].isAlive = false;
                                     const executedPlayer = players[targetPlayerId];
 
-                                    // เงื่อนไขการเปิดเผยบทบาทตอนประชาทัณฑ์ (ไม่เฉลย ยกเว้นเป็น Murderer หรือ Drunk)
                                     if (executedPlayer.role === "Murderer") {
                                         executionMsg = `⚖️ ผลโหวตสูงสุด (${maxVotes} เสียง) ตกที่ห้อง ${highestRoom} (ประชาทัณฑ์)! และผู้เล่นที่ถูกประหารคือ "${executedPlayer.name}" ซึ่งเป็น 🗡️ คนร้าย! ฝั่งคนดีชนะเกมนี้!`;
                                         data.status = "ENDED";
@@ -1479,7 +1478,6 @@
                                         data.roomLabels = roomLabels;
                                         return data;
                                     } else {
-                                        // กรณีไม่ใช่คนร้ายหรือคนเมา จะไม่เฉลยบทบาท
                                         executionMsg = `⚖️ ผลโหวตสูงสุด (${maxVotes} เสียง) ตกที่ห้อง ${highestRoom} (ประชาทัณฑ์)! ผู้เล่น "${executedPlayer.name}" ถูกโหวตประหารชีวิต`;
                                     }
                                 } else {
@@ -1499,12 +1497,12 @@
                             if (!aliveMurderer) {
                                 data.status = "ENDED";
                                 data.winner = "GOOD";
-                                data.endMessage = `🎉 ฆาตกรถูกกำจัดเรียบร้อยแล้ว! ฝั่งคนดีชนะเกมนี้!`;
+                                data.endMessage = `🎉 คนร้ายถูกกำจัดเรียบร้อยแล้ว! ฝั่งคนดีชนะเกมนี้!`;
                                 data.morningNews = executionMsg + "<br>" + data.endMessage;
                             } else if (currentNight >= maxTurns) {
                                 data.status = "ENDED";
                                 data.winner = "Murderer";
-                                data.endMessage = `⌛ ครบกำหนด ${maxTurns} เทิร์นแล้ว! ฝั่งคนดีหาตัวฆาตกรไม่พบ ➔ ฝั่งฆาตกรชนะเกมนี้!`;
+                                data.endMessage = `⌛ ครบกำหนด ${maxTurns} เทิร์นแล้ว! ฝั่งคนดีหาตัวคนร้ายไม่พบ ➔ ฝั่งคนร้ายชนะเกมนี้!`;
                                 data.morningNews = executionMsg + "<br>" + data.endMessage;
                             } else {
                                 data.morningNews = executionMsg;
