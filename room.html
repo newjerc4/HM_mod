@@ -70,7 +70,6 @@
                 <span id="actionProgress" class="text-xs text-slate-400">รอเพื่อนร่วมห้อง...</span>
             </div>
             <p id="actionDesc" class="text-xs text-slate-300">-</p>
-            <div id="pendingPlayersBox" class="hidden text-xs text-rose-300 bg-rose-500/10 border border-rose-500/20 p-2 rounded-xl"></div>
             
             <div id="customActionControls" class="pt-1"></div>
         </div>
@@ -289,7 +288,6 @@
         const roleActionPanel = document.getElementById("roleActionPanel");
         const actionTitle = document.getElementById("actionTitle");
         const actionProgress = document.getElementById("actionProgress");
-        const pendingPlayersBox = document.getElementById("pendingPlayersBox");
         const actionDesc = document.getElementById("actionDesc");
         const customActionControls = document.getElementById("customActionControls");
 
@@ -320,7 +318,7 @@
         let currentRoomData = null;
         let pendingActionPayload = null;
         let settingCrimeSceneCount = 0;
-        let previousAliveState = true; // ใช้เช็คสถานะการเปลี่ยนเป็นตายเพื่อเด้งป๊อปอัพ
+        let previousAliveState = true;
 
         function getMaxActiveFloor(maxPlayers) {
             const capped = Math.min(maxPlayers || 6, MAX_ROOM_PLAYERS);
@@ -437,6 +435,37 @@
 
                     const updates = { closedRooms, roomLabels };
                     if (settingCrimeSceneCount <= 0) {
+                        const players = currentRoomData.players || {};
+                        const roomSelections = {};
+                        let hasDuplicateRoom = false;
+                        let hasCrimeSceneConflict = false;
+
+                        Object.keys(players).forEach(pid => {
+                            const p = players[pid];
+                            if (p.currentRoom) {
+                                if (roomSelections[p.currentRoom]) {
+                                    hasDuplicateRoom = true;
+                                }
+                                roomSelections[p.currentRoom] = true;
+
+                                if (closedRooms[p.currentRoom]) {
+                                    hasCrimeSceneConflict = true;
+                                }
+                            }
+                        });
+
+                        if (hasDuplicateRoom || hasCrimeSceneConflict) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'พบข้อผิดพลาดในการ Setup ห้อง!',
+                                text: 'มีการเลือกห้องพักซ้ำกัน หรือห้องพบศพไปตรงกับห้องที่มีผู้เล่นพักอยู่! กรุณากดปุ่ม Restart (เริ่มเกมใหม่) เพื่อให้ทุกคนเลือก Role และห้องพักกันใหม่อีกครั้ง',
+                                confirmButtonColor: '#e11d48',
+                                background: '#0f172a',
+                                color: '#f8fafc'
+                            });
+                            return;
+                        }
+
                         updates.status = "DAY";
                         updates.dayPhase = "NOMINATE";
                         updates.nightCount = 1;
@@ -818,20 +847,8 @@
                 const activeNightRoleIds = aliveIds.filter(id => players[id].role !== "Tourist");
                 const submittedCount = activeNightRoleIds.filter(id => nightActions[id]).length;
 
-                // หารายชื่อคนที่ยังรอดำเนินการ (เฉพาะกลางคืน)
-                const pendingNames = activeNightRoleIds
-                    .filter(id => !nightActions[id])
-                    .map(id => players[id]?.name || "ไม่ทราบชื่อ");
-
                 actionTitle.textContent = `🌙 ภารกิจคืนนี้ของคุณ`;
                 actionProgress.textContent = `ดำเนินการแล้ว ${submittedCount}/${activeNightRoleIds.length} คน`;
-
-                if (pendingNames.length > 0) {
-                    pendingPlayersBox.classList.remove("hidden");
-                    pendingPlayersBox.innerHTML = `⏳ <b>รอดำเนินการ:</b> ${pendingNames.join(", ")}`;
-                } else {
-                    pendingPlayersBox.classList.add("hidden");
-                }
 
                 if (me.role === "Tourist") {
                     actionDesc.innerHTML = `<span class="text-slate-400">💤 คุณคือ <b>นักท่องเที่ยว (Tourist)</b> ไม่มีภารกิจช่วงกลางคืน กรุณาหลับตาและรอเพื่อนร่วมห้องดำเนินการจนถึงเช้า...</span>`;
@@ -841,7 +858,6 @@
                 if (me.role === "Drunk") {
                     if (myAction) {
                         actionDesc.innerHTML = `<span class="text-emerald-400 font-bold">✅ คุณได้เลือกห้องพักคืนนี้เรียบร้อยแล้ว (${myAction.label})</span>`;
-                        pendingPlayersBox.classList.add("hidden");
                         return;
                     }
 
@@ -951,20 +967,8 @@
                     const myNomination = dayNominations[playerId];
                     const nomCount = aliveIds.filter(id => dayNominations[id]).length;
 
-                    // หารายชื่อคนที่ยังรอดำเนินการเสนอห้อง
-                    const pendingNomNames = aliveIds
-                        .filter(id => !dayNominations[id])
-                        .map(id => players[id]?.name || "ไม่ทราบชื่อ");
-
                     actionTitle.textContent = `☀️ วันที่ ${data.nightCount || 1}: เสนอห้องต้องสงสัย`;
                     actionProgress.textContent = `เสนอห้องแล้ว ${nomCount}/${aliveIds.length} คน`;
-
-                    if (pendingNomNames.length > 0) {
-                        pendingPlayersBox.classList.remove("hidden");
-                        pendingPlayersBox.innerHTML = `⏳ <b>รอดำเนินการ:</b> ${pendingNomNames.join(", ")}`;
-                    } else {
-                        pendingPlayersBox.classList.add("hidden");
-                    }
 
                     if (myNomination) {
                         actionDesc.innerHTML = `<span class="text-amber-400 font-bold">📌 คุณได้เสนอห้อง ${myNomination.target} ไปแล้ว (รอ Host กดดูรายชื่อห้อง)</span>`;
@@ -978,20 +982,8 @@
                     const voteCount = aliveIds.filter(id => dayFinalVotes[id]).length;
                     const nomList = data.nominatedRooms || [];
 
-                    // หารายชื่อคนที่ยังรอดำเนินการโหวตตัดสิน
-                    const pendingVoteNames = aliveIds
-                        .filter(id => !dayFinalVotes[id])
-                        .map(id => players[id]?.name || "ไม่ทราบชื่อ");
-
                     actionTitle.textContent = `⚖️ วันที่ ${data.nightCount || 1}: โหวตตัดสินรุมประชาทัณฑ์`;
                     actionProgress.textContent = `โหวตตัดสินแล้ว ${voteCount}/${aliveIds.length} คน`;
-
-                    if (pendingVoteNames.length > 0) {
-                        pendingPlayersBox.classList.remove("hidden");
-                        pendingPlayersBox.innerHTML = `⏳ <b>รอดำเนินการ:</b> ${pendingVoteNames.join(", ")}`;
-                    } else {
-                        pendingPlayersBox.classList.add("hidden");
-                    }
 
                     if (nomList.length === 0) {
                         actionDesc.innerHTML = `<span class="text-slate-400">ไม่มีห้องใดถูกเสนอชื่อในรอบแรก รอ Host กดสรุปผล</span>`;
@@ -1002,7 +994,6 @@
                     }
                 }
                 else if (dayPhase === "RESOLVED") {
-                    pendingPlayersBox.classList.add("hidden");
                     actionTitle.textContent = `📋 วันที่ ${data.nightCount || 1}: สรุปผลโหวตประจำวันเรียบร้อย`;
                     actionProgress.textContent = `เสร็จสิ้นการโหวต`;
                     actionDesc.textContent = "อ่านสรุปผลการตัดสินด้านบน และรอ Host กดเข้าสู่คืนถัดไป";
@@ -1186,7 +1177,6 @@
                 return;
             }
 
-            // เช็คว่าถ้าเพิ่งตาย (จากเดิมรอดชีวิต -> ตอนนี้ตาย) ให้เด้ง Pop-up แจ้งเตือนเฉพาะคนนั้น
             if (previousAliveState === true && me.isAlive === false && data.status !== "WAITING" && data.status !== "SETUP") {
                 Swal.fire({
                     icon: 'error',
@@ -1301,7 +1291,6 @@
                 }
             }
 
-            // เปลี่ยนสีฟอนต์สถานะเสียชีวิตเป็นสีแดง
             myStatus.textContent = me.isAlive ? "มีชีวิต 🟢" : "เสียชีวิต 🔴";
             myStatus.className = me.isAlive ? "text-emerald-400" : "text-rose-500 font-bold";
 
@@ -1364,38 +1353,12 @@
         });
 
         startGameBtn.onclick = async () => {
-            const currentPlayers = currentRoomData?.players || {};
-            const currentCount = Object.keys(currentPlayers).length;
+            const currentCount = Object.keys(currentRoomData?.players || {}).length;
             if (currentCount > MAX_ROOM_PLAYERS) {
                 Swal.fire({
                     icon: 'error',
                     title: 'ผู้เล่นเกินกำหนด',
                     text: `เกมนี้รองรับผู้เล่นสูงสุดแค่ ${MAX_ROOM_PLAYERS} คนเท่านั้น (ปัจจุบันมี ${currentCount} คน)`,
-                    background: '#0f172a',
-                    color: '#f8fafc'
-                });
-                return;
-            }
-
-            // เช็คการเลือกห้องซ้ำตอน Setup อัตโนมัติเมื่อกดเริ่มเกม
-            const roomSelections = {};
-            let hasDuplicateRoom = false;
-            Object.keys(currentPlayers).forEach(pid => {
-                const rCode = currentPlayers[pid].currentRoom;
-                if (rCode) {
-                    if (roomSelections[rCode]) {
-                        hasDuplicateRoom = true;
-                    }
-                    roomSelections[rCode] = true;
-                }
-            });
-
-            if (hasDuplicateRoom) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'พบการเลือกห้องซ้ำกัน!',
-                    text: 'มีการเลือกห้องพักซ้ำกันระหว่างผู้เล่น กรุณากดปุ่ม Restart (เริ่มเกมใหม่) เพื่อให้ทุกคนเลือก Role และห้องพักกันใหม่อีกครั้ง',
-                    confirmButtonColor: '#f59e0b',
                     background: '#0f172a',
                     color: '#f8fafc'
                 });
