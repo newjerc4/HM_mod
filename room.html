@@ -123,7 +123,7 @@
         <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-3 shadow-xl">
             <div class="flex justify-between items-center">
                 <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
-                    <span>👥</span> ผู้เล่นในห้อง (สูงสุด 9 คน)
+                    <span>👥</span> ผู้เล่นในห้อง
                 </h3>
                 <div class="flex items-center gap-2">
                     <span id="playerCount" class="text-xs font-semibold bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full border border-slate-700">
@@ -1459,7 +1459,7 @@
 
         resolveVoteBtn.onclick = async () => {
             Swal.fire({
-                title: 'สรุปผลโหวตและประหาร?',
+                title: 'สรุปผลโหวตและประชาทัณฑ์?',
                 text: "ระบบจะนับคะแนนและแสดงผลโหวตแบบเปิดเผย (Open Voting) ของทุกคน",
                 icon: 'warning',
                 showCancelButton: true,
@@ -1519,27 +1519,27 @@
                                     const executedPlayer = players[targetPlayerId];
 
                                     if (executedPlayer.role === "Murderer") {
-                                        executionMsg += `⚖️ ผลโหวตสูงสุดตกที่ห้อง ${highestRoom}! ผู้เล่นที่ถูกประหารคือ "${executedPlayer.name}" ซึ่งเป็น 🗡️ ฆาตกร! ฝั่งคนดีชนะเกมนี้!`;
+                                        executionMsg += `⚖️ ผลโหวตสูงสุดตกที่ห้อง ${highestRoom}! ผู้เล่นที่ถูกประชาทัณฑ์คือ "${executedPlayer.name}" ซึ่งเป็น 🗡️ ฆาตกร! ฝั่งคนดีชนะเกมนี้!`;
                                         data.status = "ENDED";
                                         data.winner = "GOOD";
-                                        data.endMessage = `🎉 โหวตประหารถูกตัวฆาตกร (${executedPlayer.name}) สำเร็จ! ฝั่งคนดีชนะเกมนี้!`;
+                                        data.endMessage = `🎉 โหวตประชาทัณฑ์ถูกตัวฆาตกร (${executedPlayer.name}) สำเร็จ! ฝั่งคนดีชนะเกมนี้!`;
                                         data.morningNews = executionMsg;
                                         data.players = players;
                                         data.closedRooms = closedRooms;
                                         data.roomLabels = roomLabels;
                                         return data;
                                     } else if (executedPlayer.role === "Drunk") {
-                                        executionMsg += `⚖️ ผลโหวตสูงสุดตกที่ห้อง ${highestRoom}! ผู้เล่นที่ถูกประหารคือ "${executedPlayer.name}" ซึ่งเป็น 🍻คนเมา! คนเมา ชนะเกมนี้คนเดียว!`;
+                                        executionMsg += `⚖️ ผลโหวตสูงสุดตกที่ห้อง ${highestRoom}! ผู้เล่นที่ถูกประชาทัณฑ์คือ "${executedPlayer.name}" ซึ่งเป็น 🍻คนเมา! คนเมา ชนะเกมนี้คนเดียว!`;
                                         data.status = "ENDED";
                                         data.winner = "DRUNK";
-                                        data.endMessage = `🍻 ผู้เล่น "${executedPlayer.name}" คือคนเมาที่ถูกโหวตประหารสำเร็จ! คนเมา ชนะเกมนี้คนเดียว!`;
+                                        data.endMessage = `🍻 ผู้เล่น "${executedPlayer.name}" คือคนเมาที่ถูกโหวตประชาทัณฑ์สำเร็จ! คนเมา ชนะเกมนี้คนเดียว!`;
                                         data.morningNews = executionMsg;
                                         data.players = players;
                                         data.closedRooms = closedRooms;
                                         data.roomLabels = roomLabels;
                                         return data;
                                     } else {
-                                        executionMsg += `⚖️ ผลโหวตสูงสุดตกที่ห้อง ${highestRoom}! ผู้เล่น "${executedPlayer.name}" ถูกโหวตประหารชีวิต`;
+                                        executionMsg += `⚖️ ผลโหวตสูงสุดตกที่ห้อง ${highestRoom}! ผู้เล่น "${executedPlayer.name}" ถูกโหวตประชาทัณฑ์`;
                                     }
                                 } else {
                                     roomLabels[highestRoom] = "ห้องว่าง";
