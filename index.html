@@ -68,7 +68,7 @@
 
     <!-- Script เชื่อมต่อ Firebase และจัดการ Logic หน้าแรก -->
     <script type="module">
-        import { db, ref, set, get } from "./firebase-config.js";
+        import { db, ref, set, get, update } from "./firebase-config.js";
 
         const swalTheme = {
             confirmButtonColor: '#f59e0b',
@@ -79,6 +79,25 @@
         function generateRoomCode() {
             return Math.random().toString(36).substring(2, 7).toUpperCase();
         }
+
+        // 🔍 [เพิ่มใหม่] เช็กตอนเปิดหน้าแรกว่ามี Session เก่าค้างอยู่ไหม (กรณีผู้เล่นกด Back กลับมาหรือเข้าเว็บซ้ำ)
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedSession = localStorage.getItem("hotel_murder_session");
+            if (savedSession) {
+                try {
+                    const session = JSON.parse(savedSession);
+                    if (session.roomCode && session.playerId) {
+                        // ถ้ามีข้อมูลเก่าอยู่แล้ว ให้ใส่รหัสห้องลงในช่องอัตโนมัติเพื่อความสะดวก
+                        const roomInput = document.getElementById("roomCodeInput");
+                        if (roomInput && !roomInput.value) {
+                            roomInput.value = session.roomCode;
+                        }
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            }
+        });
 
         // ฟังก์ชันสร้างห้อง
         window.createRoom = async function() {
@@ -91,7 +110,15 @@
             }
 
             const roomCode = generateRoomCode();
-            const playerId = "p_" + Math.random().toString(36).substring(2, 8);
+            // เช็กว่ามี playerId เดิมอยู่แล้วไหม ถ้ามีให้ใช้ตัวเดิม (ป้องกันการสร้างซ้ำตอนกดรีเฟรช)
+            let sessionData;
+            try {
+                sessionData = JSON.parse(localStorage.getItem("hotel_murder_session"));
+            } catch (e) {
+                sessionData = null;
+            }
+
+            const playerId = (sessionData && sessionData.playerId) ? sessionData.playerId : ("p_" + Math.random().toString(36).substring(2, 8));
             const roomRef = ref(db, `rooms/${roomCode}`);
             
             const roomData = {
@@ -149,18 +176,35 @@
             }
 
             const players = roomData.players || {};
-            const playerCount = Object.keys(players).length;
-
-            if (playerCount >= roomData.maxPlayers) {
-                Swal.fire({ icon: 'warning', title: 'ห้องเต็มแล้ว', text: 'จำนวนผู้เล่นในห้องนี้ครบตามกำหนดแล้ว', ...swalTheme });
-                return;
+            
+            // เช็กว่ามี Session เก่าและ playerId นี้อยู่ในห้องนี้อยู่แล้วหรือยัง? (กรณี Refresh หน้าจอ)
+            let existingPlayerId = null;
+            let sessionData;
+            try {
+                sessionData = JSON.parse(localStorage.getItem("hotel_murder_session"));
+            } catch (e) {
+                sessionData = null;
             }
 
-            const playerId = "p_" + Math.random().toString(36).substring(2, 8);
+            if (sessionData && sessionData.roomCode === roomCode && sessionData.playerId && players[sessionData.playerId]) {
+                existingPlayerId = sessionData.playerId;
+            }
 
-            await set(ref(db, `rooms/${roomCode}/players/${playerId}`), {
+            const playerId = existingPlayerId || ("p_" + Math.random().toString(36).substring(2, 8));
+
+            // ถ้ารหัสผู้เล่นยังไม่มีในห้อง และห้องเต็มแล้วค่อยเช็กโควตา
+            if (!existingPlayerId) {
+                const playerCount = Object.keys(players).length;
+                if (playerCount >= roomData.maxPlayers) {
+                    Swal.fire({ icon: 'warning', title: 'ห้องเต็มแล้ว', text: 'จำนวนผู้เล่นในห้องนี้ครบตามกำหนดแล้ว', ...swalTheme });
+                    return;
+                }
+            }
+
+            // อัปเดตข้อมูลผู้เล่น (ถ้าเคยมีอยู่แล้วจะเป็นการอัปเดตชื่อเดิม ไม่สร้างคนใหม่เพิ่ม)
+            await update(ref(db, `rooms/${roomCode}/players/${playerId}`), {
                 name: playerName,
-                isHost: false,
+                isHost: existingPlayerId ? (players[existingPlayerId].isHost || false) : false,
                 isAlive: true
             });
 
@@ -168,7 +212,7 @@
                 roomCode,
                 playerId,
                 playerName,
-                isHost: false
+                isHost: existingPlayerId ? (players[existingPlayerId].isHost || false) : false
             }));
 
             window.location.href = `room.html?room=${roomCode}`;
