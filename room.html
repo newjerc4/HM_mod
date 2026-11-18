@@ -1329,12 +1329,7 @@
                     readyBadge.className = player.isReadySetup ? "text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded" : "text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded";
                     readyBadge.textContent = player.isReadySetup ? "เลือกห้องแล้ว" : "กำลังเลือกห้อง...";
                     rightBox.appendChild(readyBadge);
-                } else if (currentStatus === "NIGHT" && player.isAlive && player.role !== "Tourist" && data.nightActions && data.nightActions[id]) {
-                    const doneBadge = document.createElement("span");
-                    doneBadge.className = "text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded";
-                    doneBadge.textContent = "พร้อมแล้ว";
-                    rightBox.appendChild(doneBadge);
-                }
+                } 
 
                 const status = document.createElement("span");
                 status.textContent = player.isAlive ? "🟢" : "🔴";
