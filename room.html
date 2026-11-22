@@ -1426,31 +1426,35 @@
 
         showVoteListBtn.onclick = async () => {
             try {
-                await runTransaction(roomRef, (data) => {
-                    if (!data || data.status !== "DAY" || data.dayPhase !== "NOMINATE") return;
-                    const dayNominations = data.dayNominations || {};
-                    const players = data.players || {};
+                const snap = await get(roomRef);
+                const data = snap.val();
+                if (!data || data.status !== "DAY" || data.dayPhase !== "NOMINATE") return;
 
-                    const roomNomineesMap = {};
-                    Object.keys(dayNominations).forEach(pid => {
-                        const targetRoom = dayNominations[pid].target;
-                        const pName = players[pid]?.name || "ไม่ทราบชื่อ";
-                        if (!roomNomineesMap[targetRoom]) roomNomineesMap[targetRoom] = [];
-                        roomNomineesMap[targetRoom].push(pName);
-                    });
+                const dayNominations = data.dayNominations || {};
 
-                    const uniqueRooms = Object.keys(roomNomineesMap);
-                    if (uniqueRooms.length === 0) {
-                        data.nominatedRooms = [];
-                        data.dayPhase = "FINAL_VOTE";
-                        data.morningNews = (data.morningNews || "") + `<br><br>📋 <b>ประกาศรายชื่อเสนอห้อง:</b> ไม่มีผู้ใดเสนอชื่อห้องต้องสงสัยในรอบแรก`;
-                    } else {
-                        data.nominatedRooms = uniqueRooms;
-                        data.dayPhase = "FINAL_VOTE";
-                        const summaryLines = uniqueRooms.map(r => `• ห้อง <b>${r}</b> (เสนอโดย: ${roomNomineesMap[r].join(", ")})`).join("<br>");
-                        data.morningNews = (data.morningNews || "") + `<br><br>📋 <b>รายชื่อห้องที่ถูกเสนอเข้าโหวตรอบตัดสิน:</b><br>${summaryLines}<br><span class="text-amber-300 text-xs">👉 ทุกคนเลือกกดโหวตห้องที่ไฮไลต์บนแผนผังได้คนละ 1 ครั้ง!</span>`;
-                    }
-                    return data;
+                const roomCountsMap = {};
+                Object.keys(dayNominations).forEach(pid => {
+                    const targetRoom = dayNominations[pid]?.target;
+                    if (!targetRoom) return;
+                    roomCountsMap[targetRoom] = (roomCountsMap[targetRoom] || 0) + 1;
+                });
+
+                const uniqueRooms = Object.keys(roomCountsMap);
+                let updatedNews = data.morningNews || "";
+
+                if (uniqueRooms.length === 0) {
+                    updatedNews += `<br><br>📋 <b>ประกาศรายชื่อเสนอห้อง:</b> ไม่มีผู้ใดเสนอชื่อห้องต้องสงสัยในรอบแรก`;
+                } else {
+                    const summaryLines = uniqueRooms
+                        .map(r => `• ห้อง <b>${r}</b> (ถูกเสนอ ${roomCountsMap[r]} เสียง)`)
+                        .join("<br>");
+                    updatedNews += `<br><br>📋 <b>รายชื่อห้องที่ถูกเสนอเข้าโหวตรอบตัดสิน:</b><br>${summaryLines}<br><span class="text-amber-300 text-xs">👉 ทุกคนเลือกกดโหวตห้องที่ไฮไลต์บนแผนผังได้คนละ 1 ครั้ง!</span>`;
+                }
+
+                await update(roomRef, {
+                    nominatedRooms: uniqueRooms,
+                    dayPhase: "FINAL_VOTE",
+                    morningNews: updatedNews
                 });
             } catch (error) {
                 console.error("Show Vote List Error:", error);
